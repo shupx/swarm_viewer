@@ -26,25 +26,29 @@ function App({ eventBus }: { eventBus?: any }) {
   };
 
   return (
-    <div style={{ padding: 20, border: '2px dashed #3498db', height: '100%', boxSizing: 'border-box', backgroundColor: 'white' }}>
-      <h3>Sub App Demo Dashboard</h3>
-      <div>
-        <input 
-          type="text" 
-          value={inputVal} 
-          onChange={(e) => setInputVal(e.target.value)} 
-          placeholder="Message to send" 
-          style={{ padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
-        />
-        <button onClick={sendMsg} style={{ marginLeft: 8, padding: '4px 12px' }}>Send Broadcast</button>
-      </div>
-      <div style={{ marginTop: 20 }}>
-        <h4>Event Bus Messages received:</h4>
-        <ul style={{ paddingLeft: 20 }}>
-          {messages.map((m, i) => (
-            <li key={i}>{m}</li>
-          ))}
-        </ul>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundColor: '#ffffff' }}>
+      <div style={{ padding: '20px' }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#2c3e50' }}>Sub App Dashboard</h3>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <input 
+            type="text" 
+            value={inputVal} 
+            onChange={(e) => setInputVal(e.target.value)} 
+            placeholder="Broadcast a message" 
+            style={{ flex: 1, padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px' }}
+          />
+          <button onClick={sendMsg} style={{ padding: '6px 16px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            Send
+          </button>
+        </div>
+        <div>
+          <h4 style={{ margin: '0 0 8px 0', color: '#7f8c8d', fontSize: '14px' }}>Event Bus Messages received:</h4>
+          <ul style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', color: '#555' }}>
+            {messages.map((m, i) => (
+              <li key={i} style={{ padding: '4px 0', borderBottom: '1px solid #eee' }}>{m}</li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

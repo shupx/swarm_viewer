@@ -60,3 +60,29 @@ body { margin: 0; padding: 0; }
 .flexlayout__layout {
   background-color: #e0e0e0;
 }
+
+/* Modern FlexLayout overrides */
+.flexlayout__layout {
+  background-color: #ecf0f1;
+}
+
+.flexlayout__splitter {
+  background-color: #bdc3c7;
+  transition: background-color 0.2s;
+}
+
+.flexlayout__splitter:hover {
+  background-color: #3498db;
+}
+
+.flexlayout__tabset {
+  background-color: transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.flexlayout__tab {
+  background-color: #ffffff;
+  border-radius: 6px;
+}
