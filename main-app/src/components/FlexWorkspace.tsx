@@ -4,56 +4,16 @@ import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
 import { eventBus } from '../utils/bus';
 
-// A wrapper to handle hover controls (close and maximize) for sub-apps without tab strips
-const NodeWrapper: React.FC<{ node: TabNode, model: Model, children: React.ReactNode }> = ({ node, model, children }) => {
-  const [hovered, setHovered] = useState(false);
-
-  const handleClose = () => {
-    model.doAction(Actions.deleteTab(node.getId()));
-  };
-
-  const handleMaximize = () => {
-    const parentId = node.getParent()?.getId();
-    if (parentId) {
-      model.doAction(Actions.maximizeToggle(parentId));
-    }
-  };
-
-  return (
-    <div 
-      style={{ width: '100%', height: '100%', position: 'relative' }} 
-      onMouseEnter={() => setHovered(true)} 
-      onMouseLeave={() => setHovered(false)}
-    >
-      {children}
-      {hovered && (
-        <div style={{
-          position: 'absolute', top: 12, right: 12, zIndex: 100,
-          display: 'flex', gap: 6, opacity: 0.85
-        }}>
-          <button onClick={handleMaximize} title="Maximize" style={btnStyle}>⛶</button>
-          <button onClick={handleClose} title="Close" style={btnStyle}>✖</button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const btnStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.7)', border: '1px solid #ccc', borderRadius: '4px',
-  cursor: 'pointer', padding: '4px 8px', fontSize: '14px', lineHeight: '1', backdropFilter: 'blur(4px)',
-  color: '#333'
-};
-
-// Default Layout Config
+// Default Layout Config - Restoring native tabs but with simple splitters
 const defaultConfig = {
   global: {
     tabEnableClose: true,
     tabSetEnableMaximize: true,
-    tabSetEnableTabStrip: false, // Remove default tab component
+    tabSetEnableTabStrip: true, // We want the tabs back so user can drag them!
     splitterSize: 3,             // Simple clean thin splitter
     splitterExtra: 4,
     enableEdgeDock: true,
+    borderEnableTabStrip: true,
   },
   borders: [],
   layout: {
@@ -68,7 +28,7 @@ const defaultConfig = {
         children: [
           {
             type: 'tab',
-            name: 'Welcome',
+            name: 'Welcome to Swarm',
             component: 'welcome',
           },
         ],
@@ -85,7 +45,7 @@ export const FlexWorkspace: React.FC = () => {
     let targetId = model.getActiveTabset()?.getId();
     if (!targetId) targetId = 'main_tabset';
     
-    // Add sub-app splitting to the right natively instead of behind a tab header
+    // Add sub-app splitting to the right natively
     model.doAction(Actions.addNode({
       type: 'tab',
       name: name,
@@ -106,12 +66,11 @@ export const FlexWorkspace: React.FC = () => {
     // Welcome Node
     if (component === 'welcome') {
       return (
-        <NodeWrapper node={node} model={model}>
-          <div style={{ padding: 40, height: '100%', boxSizing: 'border-box', background: '#f8f9fa' }}>
-            <h2 style={{margin:0, color:'#2c3e50'}}>Swarm Viewer</h2>
-            <p style={{color:'#7f8c8d'}}>The workspace is empty. Click "Add Sub-App Demo" from the top menu to start building your layout.</p>
-          </div>
-        </NodeWrapper>
+        <div style={{ padding: 40, height: '100%', boxSizing: 'border-box', background: '#f8f9fa' }}>
+          <h2 style={{margin:0, color:'#2c3e50'}}>Swarm Viewer</h2>
+          <p style={{color:'#7f8c8d', marginTop: 12}}>The workspace is empty. Click "Add Sub-App Demo" from the top menu to start building your layout.</p>
+          <p style={{color:'#7f8c8d'}}>You can drag the tabs above to re-arrange, split screens, or dock to edges.</p>
+        </div>
       );
     }
     
@@ -120,9 +79,7 @@ export const FlexWorkspace: React.FC = () => {
       const config = node.getConfig();
       if (!config) return <div>Invalid config</div>;
       return (
-        <NodeWrapper node={node} model={model}>
-          <MicroAppRenderer name={config.name} entry={config.entry} key={node.getId()} />
-        </NodeWrapper>
+        <MicroAppRenderer name={config.name} entry={config.entry} key={node.getId()} />
       );
     }
 
