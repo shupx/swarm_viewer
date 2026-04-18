@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { loadMicroApp, MicroApp } from 'qiankun';
+import { loadMicroApp, type MicroApp } from 'qiankun';
 import { eventBus } from '../utils/bus';
 
 interface MicroAppRendererProps {

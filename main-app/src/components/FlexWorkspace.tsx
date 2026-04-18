@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Layout, Model, TabNode, Actions, Action } from 'flexlayout-react';
+import { Layout, Model, TabNode } from 'flexlayout-react';
 import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
 import { eventBus } from '../utils/bus';
@@ -14,11 +14,13 @@ const defaultConfig = {
   borders: [],
   layout: {
     type: 'row',
-    id: 'root',
+    id: 'main-row',
+    weight: 100,
     children: [
       {
         type: 'tabset',
         id: 'main_tabset',
+        weight: 100,
         children: [
           {
             type: 'tab',
@@ -32,7 +34,7 @@ const defaultConfig = {
 };
 
 export const FlexWorkspace: React.FC = () => {
-  const [model, setModel] = useState<Model>(Model.fromJson(defaultConfig));
+  const [model] = useState<Model>(Model.fromJson(defaultConfig));
   const layoutRef = useRef<Layout>(null);
 
   // Add a new tab to the layout
@@ -84,7 +86,7 @@ export const FlexWorkspace: React.FC = () => {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0 }}>
       <Layout ref={layoutRef} model={model} factory={factory} />
     </div>
   );

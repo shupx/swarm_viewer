@@ -4,4 +4,7 @@ type Events = {
   [key: string]: any;
 };
 
-export const eventBus = mitt<Events>();
+// Polyfill for CommonJS / ESM default export mixups (just in case)
+const createBus = typeof mitt === 'function' ? mitt : (mitt as any).default || mitt;
+
+export const eventBus = createBus<Events>();
