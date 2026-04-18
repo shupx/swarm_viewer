@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Layout, Model, TabNode } from 'flexlayout-react';
+import { Layout, Model, TabNode, Actions, DockLocation } from 'flexlayout-react';
 import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
 import { eventBus } from '../utils/bus';
@@ -39,12 +39,18 @@ export const FlexWorkspace: React.FC = () => {
 
   // Add a new tab to the layout
   const onAddPanel = (name: string, entry: string) => {
-    layoutRef.current?.addTabToActiveTabSet({
+    let targetId = model.getActiveTabset()?.getId();
+    if (!targetId) {
+      targetId = 'main_tabset';
+    }
+    
+    // add node and force selection
+    model.doAction(Actions.addNode({
       type: 'tab',
       name: name,
       component: 'sub-app',
       config: { entry, name },
-    });
+    }, targetId, DockLocation.CENTER, -1));
   };
 
   useEffect(() => {
