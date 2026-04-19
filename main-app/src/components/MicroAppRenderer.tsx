@@ -16,6 +16,15 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
   const microAppRef = useRef<MicroApp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  useEffect(() => {
+    if (model && node) {
+      const parent = node.getParent();
+      setIsMaximized(model.getMaximizedTabset()?.getId() === parent?.getId());
+    }
+  }, [isHovered, model, node]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -77,6 +86,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
       const parent = node.getParent();
       if (parent) {
         model.doAction(Actions.maximizeToggle(parent.getId()));
+        setIsMaximized(!isMaximized);
       }
     }
   };
@@ -88,11 +98,16 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div 
+      style={{ width: '100%', height: '100%', position: 'relative' }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Custom Inner Toolbar */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 24, zIndex: 100,
-        pointerEvents: 'none'
+        opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s',
+        pointerEvents: isHovered ? 'auto' : 'none'
       }}>
         {/* Drag handle (centered) */}
         <div 
@@ -100,7 +115,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
           onDragStart={handleDrag}
           style={{ 
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-            cursor: 'grab', color: '#999', fontSize: 20, pointerEvents: 'auto',
+            cursor: 'grab', color: '#999', fontSize: 20,
             padding: '0 10px', userSelect: 'none', lineHeight: '24px',
             display: 'flex', alignItems: 'center', letterSpacing: '2px'
           }}
@@ -112,35 +127,50 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
         {/* Action icons (top right) */}
         <div style={{ 
           position: 'absolute', top: 0, right: 8, display: 'flex', gap: 10,
-          alignItems: 'center', height: '100%', pointerEvents: 'auto'
+          alignItems: 'center', height: '100%', color: '#666'
         }}>
           {/* Dock Left Sidebar (similar to VSCode primary sidebar) */}
-          <span onClick={() => handleDock(DockLocation.LEFT)} style={{ cursor: 'pointer', color: '#666', display: 'flex' }} title="Dock to Left Sidebar">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M13 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm-1 11H6V3h6v10zM5 13H3V3h2v10z"/>
+          <span onClick={() => handleDock(DockLocation.LEFT)} style={{ cursor: 'pointer', display: 'flex' }} title="Dock to Left Sidebar">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <rect x="1.5" y="2.5" width="13" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M5.5 2.5v11" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </span>
           {/* Dock Bottom Panel (similar to VSCode bottom panel) */}
-          <span onClick={() => handleDock(DockLocation.BOTTOM)} style={{ cursor: 'pointer', color: '#666', display: 'flex' }} title="Dock to Bottom Panel">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M13 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM3 13v-3h10v3H3zm10-4H3V3h10v6z"/>
+          <span onClick={() => handleDock(DockLocation.BOTTOM)} style={{ cursor: 'pointer', display: 'flex' }} title="Dock to Bottom Panel">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <rect x="1.5" y="2.5" width="13" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M1.5 9.5h13" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </span>
           {/* Dock Right Sidebar (similar to VSCode secondary sidebar) */}
-          <span onClick={() => handleDock(DockLocation.RIGHT)} style={{ cursor: 'pointer', color: '#666', display: 'flex' }} title="Dock to Right Sidebar">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M13 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm-6 11V3h5v10H7zm-4 0v-10h3v10H3z"/>
+          <span onClick={() => handleDock(DockLocation.RIGHT)} style={{ cursor: 'pointer', display: 'flex' }} title="Dock to Right Sidebar">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <rect x="1.5" y="2.5" width="13" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M10.5 2.5v11" stroke="currentColor" strokeWidth="1.5" />
             </svg>
           </span>
 
           <div style={{ width: '1px', height: '12px', background: '#ccc', margin: '0 2px' }} />
 
-          {/* Maximize */}
-          <span onClick={handleMaximize} style={{ cursor: 'pointer', color: '#666', fontSize: 14 }} title="Maximize">
-            ❐
+          {/* Maximize / Restore */}
+          <span onClick={handleMaximize} style={{ cursor: 'pointer', display: 'flex' }} title={isMaximized ? "Restore" : "Maximize"}>
+            {isMaximized ? (
+              <svg width="14" height="14" viewBox="0 0 16 16">
+                <path d="M4.5 4.5v-2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="1.5" y="5.5" width="9" height="9" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 16 16">
+                <rect x="1.5" y="2.5" width="13" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            )}
           </span>
-          <span onClick={handleClose} style={{ cursor: 'pointer', color: '#666', fontSize: 14 }} title="Close">
-            ✕
+          {/* Close */}
+          <span onClick={handleClose} style={{ cursor: 'pointer', display: 'flex' }} title="Close">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M4 4l8 8m0-8l-8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </span>
         </div>
       </div>
