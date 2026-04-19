@@ -26,12 +26,13 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
     }
   }, [isHovered, model, node]);
 
-  useEffect(() => {
+  const loadApp = () => {
     if (!containerRef.current) return;
+    
+    setError(null);
+    setLoading(true);
 
     try {
-      setLoading(true);
-      // Load the micro app manually
       microAppRef.current = loadMicroApp(
         {
           name: `${name}-${Math.random().toString(36).substring(7)}`, // Ensure unique name for multiple instances
@@ -58,6 +59,10 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
       setError(err.message || 'Error loading micro app');
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadApp();
 
     return () => {
       // Unmount on cleanup
@@ -176,7 +181,25 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
       </div>
 
       {loading && <div style={{ position: 'absolute', top: 30, left: 10 }}>Loading {name}...</div>}
-      {error && <div style={{ position: 'absolute', top: 30, left: 10, color: 'red' }}>Error: {error}</div>}
+      {error && (
+        <div style={{ position: 'absolute', top: 30, left: 10, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ color: 'red' }}>Error: {error}</div>
+          <button 
+            onClick={loadApp}
+            style={{ 
+              padding: '4px 12px', 
+              cursor: 'pointer', 
+              background: '#007acc', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '2px',
+              width: 'fit-content'
+            }}
+          >
+            Reload {name}
+          </button>
+        </div>
+      )}
       <div ref={containerRef} style={{ width: '100%', height: '100%', paddingTop: 24, boxSizing: 'border-box' }} />
     </div>
   );

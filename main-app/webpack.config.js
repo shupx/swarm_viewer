@@ -46,5 +46,8 @@ module.exports = {
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
+    client: {
+      overlay: false,
+    },
   },
 };
