@@ -5,6 +5,11 @@ import './App.css';
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customAppName, setCustomAppName] = useState('');
+  const [customAppUrl, setCustomAppUrl] = useState('');
 
   // Listen to bus messages
   useEffect(() => {
@@ -19,13 +24,27 @@ function App() {
 
   const loadSubAppDemo = () => {
     eventBus.emit('add-panel', {
-      name: 'Demo App',
+      name: 'sub-app-demo',
       entry: 'http://localhost:5174', // Default sub-app port
     });
+    setShowAddMenu(false);
+  };
+
+  const loadCustomApp = () => {
+    if (customAppName && customAppUrl) {
+      eventBus.emit('add-panel', {
+        name: customAppName,
+        entry: customAppUrl,
+      });
+      setShowCustomModal(false);
+      setCustomAppName('');
+      setCustomAppUrl('');
+    }
   };
 
   const broadcastMessage = () => {
     eventBus.emit('message', { from: 'main', text: 'Hello from Main App!' });
+    setShowSettingsMenu(false);
   };
 
   return (
@@ -33,13 +52,63 @@ function App() {
       <header className="top-menu">
         <div className="menu-left">
           <span className="logo">Swarm Viewer</span>
-          <button onClick={loadSubAppDemo}>Add Sub-App Demo</button>
-          <button onClick={broadcastMessage}>Broadcast Event</button>
+          
+          <div 
+            className="menu-item"
+            onMouseEnter={() => setShowAddMenu(true)}
+            onMouseLeave={() => setShowAddMenu(false)}
+          >
+            Add
+            {showAddMenu && (
+              <div className="dropdown-menu">
+                <div className="dropdown-item" onClick={loadSubAppDemo}>Demo Sub App</div>
+                <div className="dropdown-item" onClick={() => { setShowCustomModal(true); setShowAddMenu(false); }}>Custom App...</div>
+                <div className="dropdown-divider"></div>
+                <div className="dropdown-item disabled">Recent...</div>
+              </div>
+            )}
+          </div>
+
+          <div 
+            className="menu-item"
+            onMouseEnter={() => setShowSettingsMenu(true)}
+            onMouseLeave={() => setShowSettingsMenu(false)}
+          >
+            Settings
+            {showSettingsMenu && (
+              <div className="dropdown-menu">
+                <div className="dropdown-item" onClick={broadcastMessage}>Broadcast Event</div>
+              </div>
+            )}
+          </div>
+
         </div>
         <div className="menu-messages">
           {messages.length > 0 && <span className="latest-msg">{messages[messages.length - 1]}</span>}
         </div>
       </header>
+
+      {/* Custom App Modal */}
+      {showCustomModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Add Custom Sub App</h3>
+            <div className="form-group">
+              <label>App Name:</label>
+              <input value={customAppName} onChange={e => setCustomAppName(e.target.value)} placeholder="e.g. My App" />
+            </div>
+            <div className="form-group">
+              <label>App URL:</label>
+              <input value={customAppUrl} onChange={e => setCustomAppUrl(e.target.value)} placeholder="e.g. http://localhost:3000" />
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowCustomModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={loadCustomApp}>Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="workspace-container">
         <FlexWorkspace />
       </main>
