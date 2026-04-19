@@ -136,25 +136,30 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
   return (
     <div 
       style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
-      onMouseMove={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        setIsHovered(y <= 40); // trigger toolbar when mouse is within top 40px
-      }}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Custom Inner Toolbar */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 28, zIndex: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-        transform: isHovered ? 'translateY(0)' : 'translateY(-100%)',
-        opacity: isHovered ? 1 : 0, 
-        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-        pointerEvents: isHovered ? 'auto' : 'none'
-      }}>
-        {/* Drag handle (centered) */}
+      {/* Invisible Hover Trigger & Toolbar Container */}
+      <div 
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, 
+          height: isHovered ? 28 : 12, 
+          zIndex: 100,
+          backgroundColor: 'transparent'
+        }}
+      >
+        {/* Custom Inner Toolbar */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 28,
+          backgroundColor: 'rgba(255, 255, 255, 0.4)',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+          transform: isHovered ? 'translateY(0)' : 'translateY(-100%)',
+          opacity: isHovered ? 1 : 0, 
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: isHovered ? 'auto' : 'none'
+        }}>
+          {/* Drag handle (centered) */}
         <div 
           draggable={true}
           onDragStart={handleDrag}
@@ -220,6 +225,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
             </svg>
           </span>
         </div>
+      </div>
       </div>
 
       {loading && <div style={{ position: 'absolute', top: 30, left: 10 }}>Loading {name}...</div>}
