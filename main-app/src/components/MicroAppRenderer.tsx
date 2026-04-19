@@ -135,14 +135,23 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
 
   return (
     <div 
-      style={{ width: '100%', height: '100%', position: 'relative' }}
-      onMouseEnter={() => setIsHovered(true)}
+      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        setIsHovered(y <= 40); // trigger toolbar when mouse is within top 40px
+      }}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Custom Inner Toolbar */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 24, zIndex: 100,
-        opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s',
+        position: 'absolute', top: 0, left: 0, right: 0, height: 28, zIndex: 100,
+        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+        transform: isHovered ? 'translateY(0)' : 'translateY(-100%)',
+        opacity: isHovered ? 1 : 0, 
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         pointerEvents: isHovered ? 'auto' : 'none'
       }}>
         {/* Drag handle (centered) */}
@@ -151,9 +160,10 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
           onDragStart={handleDrag}
           style={{ 
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-            cursor: 'grab', color: '#999', fontSize: 20,
+            cursor: 'grab', color: '#333', fontSize: 20,
             padding: '0 10px', userSelect: 'none', lineHeight: '24px',
-            display: 'flex', alignItems: 'center', letterSpacing: '2px'
+            display: 'flex', alignItems: 'center', letterSpacing: '2px',
+            textShadow: '0 0 2px rgba(255,255,255,0.8)'
           }}
           title="Drag panel"
         >
@@ -163,7 +173,8 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
         {/* Action icons (top right) */}
         <div style={{ 
           position: 'absolute', top: 0, right: 8, display: 'flex', gap: 10,
-          alignItems: 'center', height: '100%', color: '#666'
+          alignItems: 'center', height: '100%', color: '#333',
+          filter: 'drop-shadow(0 1px 1px rgba(255,255,255,0.8))'
         }}>
           {/* Dock Left Sidebar (similar to VSCode primary sidebar) */}
           <span onClick={() => handleDock(DockLocation.LEFT)} style={{ cursor: 'pointer', display: 'flex' }} title="Dock to Left Sidebar">
@@ -237,7 +248,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
           </button>
         </div>
       )}
-      <div ref={containerRef} style={{ width: '100%', height: '100%', paddingTop: 24, boxSizing: 'border-box' }} />
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };
