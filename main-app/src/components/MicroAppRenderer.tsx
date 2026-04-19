@@ -26,17 +26,38 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
     }
   }, [isHovered, model, node]);
 
-  const loadApp = () => {
+  const loadApp = async () => {
     if (!containerRef.current) return;
     
+    // Clean up previous instance if there is one
+    if (microAppRef.current) {
+      if (microAppRef.current.getStatus() === 'MOUNTED') {
+        try {
+          await microAppRef.current.unmount();
+        } catch (e) {
+          console.error('Failed to unmount previous instance', e);
+        }
+      }
+      microAppRef.current = null;
+    }
+    
+    // Clear container
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+    }
+
     setError(null);
     setLoading(true);
 
     try {
+      // Add a timestamp query param to bypass qiankun's internal import-html-entry cache on the entry URL
+      const entryUrl = new URL(entry, window.location.href);
+      entryUrl.searchParams.set('t', Date.now().toString());
+
       microAppRef.current = loadMicroApp(
         {
           name: `${name}-${Math.random().toString(36).substring(7)}`, // Ensure unique name for multiple instances
-          entry: entry,
+          entry: entryUrl.toString(),
           container: containerRef.current,
           props: {
             eventBus, // Inject event bus
@@ -46,6 +67,10 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
           sandbox: { strictStyleIsolation: false, experimentalStyleIsolation: true },
         }
       );
+
+      // Catch all promises from qiankun to prevent UnhandledPromiseRejection global errors
+      microAppRef.current.loadPromise.catch(() => {});
+      microAppRef.current.bootstrapPromise.catch(() => {});
 
       microAppRef.current.mountPromise
         .then(() => setLoading(false))
