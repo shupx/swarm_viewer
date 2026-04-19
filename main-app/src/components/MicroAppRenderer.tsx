@@ -69,8 +69,13 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
       );
 
       // Catch all promises from qiankun to prevent UnhandledPromiseRejection global errors
-      microAppRef.current.loadPromise.catch(() => {});
-      microAppRef.current.bootstrapPromise.catch(() => {});
+      // but still log them to the console for debugging purposes
+      microAppRef.current.loadPromise.catch((err) => {
+        console.warn(`[qiankun load] Failed to load ${name}:`, err.message || err);
+      });
+      microAppRef.current.bootstrapPromise.catch((err) => {
+        console.warn(`[qiankun bootstrap] Failed to bootstrap ${name}:`, err.message || err);
+      });
 
       microAppRef.current.mountPromise
         .then(() => setLoading(false))
