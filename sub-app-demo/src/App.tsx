@@ -27,15 +27,15 @@ function App({ eventBus }: { eventBus?: any }) {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundColor: '#ffffff' }}>
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '20px', width: '100%', boxSizing: 'border-box' }}>
         <h3 style={{ margin: '0 0 16px 0', color: '#2c3e50' }}>Sub App Dashboard</h3>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', width: '100%' }}>
           <input 
             type="text" 
             value={inputVal} 
             onChange={(e) => setInputVal(e.target.value)} 
             placeholder="Broadcast a message" 
-            style={{ flex: 1, padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px' }}
+            style={{ flex: 1, minWidth: 0, padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px' }}
           />
           <button onClick={sendMsg} style={{ padding: '6px 16px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
             Send
