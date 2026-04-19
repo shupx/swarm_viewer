@@ -215,6 +215,12 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
       {error && (
         <div style={{ position: 'absolute', top: 30, left: 10, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ color: 'red' }}>Error: {error}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            Target URL:{' '}
+            <a href={entry} target="_blank" rel="noreferrer" style={{ color: '#007acc', textDecoration: 'underline' }}>
+              {entry}
+            </a>
+          </div>
           <button 
             onClick={loadApp}
             style={{ 
