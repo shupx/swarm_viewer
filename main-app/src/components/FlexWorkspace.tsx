@@ -46,13 +46,25 @@ export const FlexWorkspace: React.FC = () => {
     let targetId = model.getActiveTabset()?.getId();
     if (!targetId) targetId = 'main_tabset';
     
-    // Add sub-app splitting to the right natively
+    let welcomeNodeId: string | null = null;
+    model.visitNodes((node: Node) => {
+      if (node.getType() === 'tab' && (node as TabNode).getComponent() === 'welcome') {
+        welcomeNodeId = node.getId();
+      }
+    });
+
+    // Add sub-app (replace welcome if it exists, otherwise split to the right)
     model.doAction(Actions.addNode({
       type: 'tab',
       name: name,
       component: 'sub-app',
       config: { entry, name },
-    }, targetId, DockLocation.RIGHT, -1));
+    }, targetId, welcomeNodeId ? DockLocation.CENTER : DockLocation.RIGHT, -1));
+
+    // Automatically close welcome page
+    if (welcomeNodeId) {
+      model.doAction(Actions.deleteTab(welcomeNodeId));
+    }
   };
 
   useEffect(() => {
