@@ -4,8 +4,8 @@ Swarm Viewer 是一个基于微前端架构（qiankun）建设的容器型平台
 
 ## 项目结构
 
-- `main-app/`: 基座主应用（Vite + React）。提供全局布局框架、菜单栏、微前端组件加载器 (`MicroAppRenderer`)，以及基于 `mitt` 开发的全局事件总线。
-- `sub-app-demo/`: 示例子应用（Vite + React）。通过 `vite-plugin-qiankun` 适配了 qiankun 的生命周期，并接收主应用下发的 `eventBus` 实现跨应用、跨组件的通信联动。
+- `main-app/`: 基座主应用（Webpack + React）。提供全局布局框架、菜单栏、微前端组件加载器 (`MicroAppRenderer`)，以及基于 `mitt` 开发的全局事件总线。
+- `sub-app-demo/`: 示例子应用（Webpack + React）。编译为 UMD 格式天然完美适配了 qiankun 的生命周期（解决了 Vite ESM 模式下多实例同界面的模块执行缓存冲突），并接收主应用下发的 `eventBus` 实现跨应用、跨组件的通信联动。
 - `start.sh`: 一键启动主/子应用开发服务器的 bash 脚本。
 
 ## ⚙️ 第一步：安装依赖
@@ -26,7 +26,7 @@ npm install
 
 ### 方式一：使用一键启动脚本（推荐）
 
-回到项目根目录（`/home/spx/spx_ws/swarm_viewer_dev/swarm_viewer`），运行脚本：
+回到项目根目录（例如 `/home/spx/spx_ws/swarm_viewer_dev/swarm_viewer_old`），运行脚本：
 
 ```bash
 ./start.sh
