@@ -6,7 +6,7 @@
     "dev": "webpack serve --mode development",
     "build": "webpack --mode production",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "webpack serve --mode production"
   },
   "dependencies": {
     "flexlayout-react": "^0.8.19",
@@ -22,7 +22,6 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",

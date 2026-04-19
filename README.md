@@ -26,7 +26,7 @@ npm install
 
 ### 方式一：使用一键启动脚本（推荐）
 
-回到项目根目录（例如 `/home/spx/spx_ws/swarm_viewer_dev/swarm_viewer_old`），运行脚本：
+回到项目根目录（`swarm_viewer`），运行脚本：
 
 ```bash
 ./start.sh
