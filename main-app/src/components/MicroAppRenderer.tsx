@@ -248,7 +248,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
           </button>
         </div>
       )}
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div ref={containerRef} className="micro-app-wrapper" style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };
