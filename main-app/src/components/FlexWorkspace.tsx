@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Layout, Model, TabNode, Actions, DockLocation } from 'flexlayout-react';
+import { Layout, Model, TabNode, Actions, DockLocation, TabSetNode, Node } from 'flexlayout-react';
 import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
 import { eventBus } from '../utils/bus';
@@ -25,6 +25,7 @@ const defaultConfig = {
         type: 'tabset',
         id: 'main_tabset',
         weight: 100,
+        enableTabStrip: false,
         children: [
           {
             type: 'tab',
@@ -79,16 +80,34 @@ export const FlexWorkspace: React.FC = () => {
       const config = node.getConfig();
       if (!config) return <div>Invalid config</div>;
       return (
-        <MicroAppRenderer name={config.name} entry={config.entry} key={node.getId()} />
+        <MicroAppRenderer name={config.name} entry={config.entry} key={node.getId()} node={node} model={model} layout={layoutRef.current || undefined} />
       );
     }
 
     return <div>Component Not Found</div>;
   };
 
+  const onModelChange = (newModel: Model) => {
+    // Dynamically hide tab strip when there is only 1 tab
+    newModel.visitNodes((n: Node) => {
+      if (n.getType() === 'tabset') {
+        const tabset = n as TabSetNode;
+        const children = tabset.getChildren();
+        const shouldShowTabs = children.length > 1;
+        if (tabset.isEnableTabStrip() !== shouldShowTabs) {
+          setTimeout(() => {
+            newModel.doAction(Actions.updateNodeAttributes(tabset.getId(), {
+              enableTabStrip: shouldShowTabs
+            }));
+          }, 0);
+        }
+      }
+    });
+  };
+
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0 }}>
-      <Layout ref={layoutRef} model={model} factory={factory} />
+      <Layout ref={layoutRef} model={model} factory={factory} onModelChange={onModelChange} />
     </div>
   );
 };
