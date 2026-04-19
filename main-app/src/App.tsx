@@ -47,6 +47,25 @@ function App() {
     setShowSettingsMenu(false);
   };
 
+  const handleExportLayout = () => {
+    eventBus.emit('export-layout');
+    setShowSettingsMenu(false);
+  };
+
+  const handleImportLayout = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const jsonStr = event.target?.result as string;
+      eventBus.emit('import-layout', jsonStr);
+    };
+    reader.readAsText(file);
+    setShowSettingsMenu(false);
+    // reset input
+    e.target.value = null;
+  };
+
   return (
     <div className="app-container">
       <header className="top-menu">
@@ -77,6 +96,12 @@ function App() {
             Settings
             {showSettingsMenu && (
               <div className="dropdown-menu">
+                <div className="dropdown-item" onClick={handleExportLayout}>Export Layout</div>
+                <label className="dropdown-item">
+                  Import Layout
+                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportLayout} />
+                </label>
+                <div className="dropdown-divider"></div>
                 <div className="dropdown-item" onClick={broadcastMessage}>Broadcast Event</div>
               </div>
             )}

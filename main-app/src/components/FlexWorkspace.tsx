@@ -38,8 +38,20 @@ const defaultConfig = {
   },
 };
 
+const LOCAL_STORAGE_KEY = 'swarm_viewer_layout';
+
 export const FlexWorkspace: React.FC = () => {
-  const [model] = useState<Model>(Model.fromJson(defaultConfig));
+  const [model, setModel] = useState<Model>(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (saved) {
+      try {
+        return Model.fromJson(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved layout', e);
+      }
+    }
+    return Model.fromJson(defaultConfig);
+  });
   const layoutRef = useRef<Layout>(null);
 
   const onAddPanel = (name: string, entry: string) => {
@@ -73,6 +85,38 @@ export const FlexWorkspace: React.FC = () => {
     return () => { eventBus.off('add-panel', handler); };
   }, []);
 
+  useEffect(() => {
+    const handleExport = () => {
+      const currentModel = model;
+      if (!currentModel) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentModel.toJson(), null, 2));
+      const anchor = document.createElement('a');
+      anchor.setAttribute("href", dataStr);
+      anchor.setAttribute("download", "swarm_layout.json");
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    };
+    
+    const handleImport = (jsonStr: string) => {
+      try {
+        const newModel = Model.fromJson(JSON.parse(jsonStr));
+        setModel(newModel);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newModel.toJson()));
+      } catch (e) {
+        alert('Invalid layout JSON');
+        console.error(e);
+      }
+    };
+
+    eventBus.on('export-layout', handleExport);
+    eventBus.on('import-layout', handleImport);
+    return () => {
+      eventBus.off('export-layout', handleExport);
+      eventBus.off('import-layout', handleImport);
+    };
+  }, [model]);
+
   const factory = (node: TabNode) => {
     const component = node.getComponent();
 
@@ -100,6 +144,11 @@ export const FlexWorkspace: React.FC = () => {
   };
 
   const onModelChange = (newModel: Model) => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newModel.toJson()));
+    } catch (e) {
+      console.error('Failed to save layout', e);
+    }
     // Dynamically hide tab strip when there is only 1 tab
     newModel.visitNodes((n: Node) => {
       if (n.getType() === 'tabset') {
