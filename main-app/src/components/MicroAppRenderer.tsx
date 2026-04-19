@@ -54,9 +54,10 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
       const entryUrl = new URL(entry, window.location.href);
       entryUrl.searchParams.set('t', Date.now().toString());
 
+      const safeName = name.replace(/[^a-zA-Z0-9-]/g, '-');
       microAppRef.current = loadMicroApp(
         {
-          name: `${name}-${Math.random().toString(36).substring(7)}`, // Ensure unique name for multiple instances
+          name: `${safeName}-${Math.random().toString(36).substring(7)}`, // Ensure unique name for multiple instances
           entry: entryUrl.toString(),
           container: containerRef.current,
           props: {

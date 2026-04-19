@@ -32,9 +32,13 @@ function App() {
 
   const loadCustomApp = () => {
     if (customAppName && customAppUrl) {
+      let finalUrl = customAppUrl;
+      if (!/^https?:\/\//i.test(finalUrl)) {
+        finalUrl = 'http://' + finalUrl;
+      }
       eventBus.emit('add-panel', {
         name: customAppName,
-        entry: customAppUrl,
+        entry: finalUrl,
       });
       setShowCustomModal(false);
       setCustomAppName('');
