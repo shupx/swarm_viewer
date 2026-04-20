@@ -178,6 +178,21 @@ body { margin: 0; padding: 0; }
   flex-direction: column;
 }
 
+.source-mode-group {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.source-mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+}
+
 .form-group label {
   font-size: 13px;
   color: #555;

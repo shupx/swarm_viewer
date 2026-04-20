@@ -4,6 +4,16 @@ import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
 import { eventBus } from '../utils/bus';
 
+type MicroAppSource =
+  | { type: 'absolute-url'; value: string }
+  | { type: 'relative-route'; value: string };
+
+interface MicroAppConfig {
+  name: string;
+  source?: MicroAppSource;
+  entry?: string;
+}
+
 // Default Layout Config - Restoring native tabs but with simple splitters
 const defaultConfig = {
   global: {
@@ -40,12 +50,97 @@ const defaultConfig = {
 
 const LOCAL_STORAGE_KEY = 'swarm_viewer_layout';
 
+const normalizeRelativeRoute = (value: string) => {
+  if (!value) return '/';
+  let normalized = value.trim();
+  if (!normalized.startsWith('/')) {
+    normalized = `/${normalized}`;
+  }
+
+  const lastSegment = normalized.split('/').filter(Boolean).pop() ?? '';
+  const looksLikeFile = lastSegment.includes('.');
+  if (!normalized.endsWith('/') && !looksLikeFile) {
+    normalized = `${normalized}/`;
+  }
+
+  return normalized;
+};
+
+const normalizeAbsoluteUrl = (value: string) => {
+  const normalizedUrl = new URL(value);
+  const pathname = normalizedUrl.pathname;
+  const lastSegment = pathname.split('/').filter(Boolean).pop() ?? '';
+  const looksLikeFile = lastSegment.includes('.');
+
+  if (!pathname.endsWith('/') && !looksLikeFile) {
+    normalizedUrl.pathname = `${pathname}/`;
+  }
+
+  return normalizedUrl.toString();
+};
+
+const resolveEntryFromSource = (source: MicroAppSource) => {
+  if (source.type === 'relative-route') {
+    return new URL(normalizeRelativeRoute(source.value), window.location.origin).toString();
+  }
+
+  return normalizeAbsoluteUrl(source.value);
+};
+
+const normalizeConfig = (config: MicroAppConfig): MicroAppConfig => {
+  if (config.source) {
+    const normalizedSource =
+      config.source.type === 'relative-route'
+        ? { type: 'relative-route' as const, value: normalizeRelativeRoute(config.source.value) }
+        : { type: 'absolute-url' as const, value: normalizeAbsoluteUrl(config.source.value) };
+
+    return {
+      ...config,
+      source: normalizedSource,
+      entry: resolveEntryFromSource(normalizedSource),
+    };
+  }
+
+  if (config.entry) {
+    return {
+      ...config,
+      source: { type: 'absolute-url', value: normalizeAbsoluteUrl(config.entry) },
+      entry: normalizeAbsoluteUrl(config.entry),
+    };
+  }
+
+  return config;
+};
+
+const normalizeLayoutJson = (config: any) => {
+  if (!config) return config;
+
+  const visit = (node: any) => {
+    if (node?.component === 'sub-app' && node.config) {
+      node.config = normalizeConfig(node.config);
+    }
+
+    if (Array.isArray(node?.children)) {
+      node.children.forEach(visit);
+    }
+  };
+
+  visit(config.layout);
+  if (Array.isArray(config.borders)) {
+    config.borders.forEach(visit);
+  }
+
+  return config;
+};
+
 export const FlexWorkspace: React.FC = () => {
   const [model, setModel] = useState<Model>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
       try {
-        return Model.fromJson(JSON.parse(saved));
+        const normalized = normalizeLayoutJson(JSON.parse(saved));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(normalized));
+        return Model.fromJson(normalized);
       } catch (e) {
         console.error('Failed to parse saved layout', e);
       }
@@ -54,7 +149,7 @@ export const FlexWorkspace: React.FC = () => {
   });
   const layoutRef = useRef<Layout>(null);
 
-  const onAddPanel = (name: string, entry: string) => {
+  const onAddPanel = (name: string, source?: MicroAppSource, entry?: string) => {
     let targetId = model.getActiveTabset()?.getId();
     if (!targetId) targetId = 'main_tabset';
     
@@ -65,12 +160,14 @@ export const FlexWorkspace: React.FC = () => {
       }
     });
 
+    const config = normalizeConfig({ name, source, entry });
+
     // Add sub-app (replace welcome if it exists, otherwise split to the right)
     model.doAction(Actions.addNode({
       type: 'tab',
       name: name,
       component: 'sub-app',
-      config: { entry, name },
+      config,
     }, targetId, welcomeNodeId ? DockLocation.CENTER : DockLocation.RIGHT, -1));
 
     // Automatically close welcome page
@@ -80,7 +177,7 @@ export const FlexWorkspace: React.FC = () => {
   };
 
   useEffect(() => {
-    const handler = (data: any) => onAddPanel(data.name, data.entry);
+    const handler = (data: any) => onAddPanel(data.name, data.source, data.entry);
     eventBus.on('add-panel', handler);
     return () => { eventBus.off('add-panel', handler); };
   }, []);
@@ -100,7 +197,8 @@ export const FlexWorkspace: React.FC = () => {
     
     const handleImport = (jsonStr: string) => {
       try {
-        const newModel = Model.fromJson(JSON.parse(jsonStr));
+        const normalized = normalizeLayoutJson(JSON.parse(jsonStr));
+        const newModel = Model.fromJson(normalized);
         setModel(newModel);
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newModel.toJson()));
       } catch (e) {

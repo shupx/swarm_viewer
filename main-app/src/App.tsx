@@ -3,13 +3,20 @@ import { FlexWorkspace } from './components/FlexWorkspace';
 import { eventBus } from './utils/bus';
 import './App.css';
 
+type CustomSourceMode = 'absolute-url' | 'relative-route';
+
+const DEFAULT_CUSTOM_APP_NAME = 'MyApp';
+const getDefaultCustomAppValue = (mode: CustomSourceMode) =>
+  mode === 'relative-route' ? '/sub-app-demo/' : `${window.location.origin}/sub-app-demo/`;
+
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [customAppName, setCustomAppName] = useState('');
-  const [customAppUrl, setCustomAppUrl] = useState('');
+  const [customAppName, setCustomAppName] = useState(DEFAULT_CUSTOM_APP_NAME);
+  const [customAppUrl, setCustomAppUrl] = useState(getDefaultCustomAppValue('relative-route'));
+  const [customSourceMode, setCustomSourceMode] = useState<CustomSourceMode>('relative-route');
 
   // Listen to bus messages
   useEffect(() => {
@@ -25,41 +32,42 @@ function App() {
   const loadSubAppDemo = () => {
     eventBus.emit('add-panel', {
       name: 'sub-app-demo',
-      entry: new URL('/sub-app-demo/', window.location.origin).toString(),
+      source: {
+        type: 'relative-route',
+        value: '/sub-app-demo/',
+      },
     });
     setShowAddMenu(false);
   };
 
   const loadCustomApp = () => {
     if (customAppName && customAppUrl) {
-      let finalUrl = customAppUrl.trim();
-      if (!/^https?:\/\//i.test(finalUrl)) {
-        finalUrl = 'http://' + finalUrl;
-      }
-
-      try {
-        const normalizedUrl = new URL(finalUrl);
-        const pathname = normalizedUrl.pathname;
-        const lastSegment = pathname.split('/').filter(Boolean).pop() ?? '';
-        const looksLikeFile = lastSegment.includes('.');
-
-        if (!pathname.endsWith('/') && !looksLikeFile) {
-          normalizedUrl.pathname = `${pathname}/`;
-        }
-
-        finalUrl = normalizedUrl.toString();
-      } catch (error) {
-        console.error('Invalid custom app URL', error);
-      }
-
       eventBus.emit('add-panel', {
         name: customAppName,
-        entry: finalUrl,
+        source: {
+          type: customSourceMode,
+          value: customAppUrl.trim(),
+        },
       });
       setShowCustomModal(false);
-      setCustomAppName('');
-      setCustomAppUrl('');
+      setCustomAppName(DEFAULT_CUSTOM_APP_NAME);
+      setCustomAppUrl(getDefaultCustomAppValue('relative-route'));
+      setCustomSourceMode('relative-route');
     }
+  };
+
+  const openCustomModal = () => {
+    const defaultMode: CustomSourceMode = 'relative-route';
+    setCustomAppName(DEFAULT_CUSTOM_APP_NAME);
+    setCustomSourceMode(defaultMode);
+    setCustomAppUrl(getDefaultCustomAppValue(defaultMode));
+    setShowCustomModal(true);
+    setShowAddMenu(false);
+  };
+
+  const handleCustomSourceModeChange = (mode: CustomSourceMode) => {
+    setCustomSourceMode(mode);
+    setCustomAppUrl(getDefaultCustomAppValue(mode));
   };
 
   const broadcastMessage = () => {
@@ -101,7 +109,7 @@ function App() {
             {showAddMenu && (
               <div className="dropdown-menu">
                 <div className="dropdown-item" onClick={loadSubAppDemo}>Demo Sub App</div>
-                <div className="dropdown-item" onClick={() => { setShowCustomModal(true); setShowAddMenu(false); }}>Custom App...</div>
+                <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
                 <div className="dropdown-divider"></div>
                 <div className="dropdown-item disabled">Recent...</div>
               </div>
@@ -138,13 +146,37 @@ function App() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Add Custom Sub App</h3>
+            <div className="source-mode-group">
+              <label className="source-mode-option">
+                <input
+                  type="radio"
+                  name="custom-source-mode"
+                  checked={customSourceMode === 'absolute-url'}
+                  onChange={() => handleCustomSourceModeChange('absolute-url')}
+                />
+                Absolute URL
+              </label>
+              <label className="source-mode-option">
+                <input
+                  type="radio"
+                  name="custom-source-mode"
+                  checked={customSourceMode === 'relative-route'}
+                  onChange={() => handleCustomSourceModeChange('relative-route')}
+                />
+                Relative Route
+              </label>
+            </div>
             <div className="form-group">
               <label>App Name:</label>
               <input value={customAppName} onChange={e => setCustomAppName(e.target.value)} placeholder="e.g. My App" />
             </div>
             <div className="form-group">
-              <label>App URL:</label>
-              <input value={customAppUrl} onChange={e => setCustomAppUrl(e.target.value)} placeholder="e.g. http://localhost:3000" />
+              <label>{customSourceMode === 'absolute-url' ? 'App URL:' : 'App Route:'}</label>
+              <input
+                value={customAppUrl}
+                onChange={e => setCustomAppUrl(e.target.value)}
+                placeholder={customSourceMode === 'absolute-url' ? 'e.g. http://localhost:5173/sub-app-demo/' : 'e.g. /sub-app-demo/'}
+              />
             </div>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowCustomModal(false)}>Cancel</button>
