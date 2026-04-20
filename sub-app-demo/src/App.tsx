@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
-function App({ eventBus }: { eventBus?: any }) {
+interface EventBusLike {
+  on: (type: string, handler: (event: unknown) => void) => void;
+  off: (type: string, handler: (event: unknown) => void) => void;
+  emit: (type: string, event?: unknown) => void;
+}
+
+function App({ eventBus }: { eventBus?: EventBusLike }) {
   const [messages, setMessages] = useState<string[]>([]);
   const [inputVal, setInputVal] = useState('');
 
   useEffect(() => {
     if (!eventBus) return;
-    const handler = (msg: any) => {
+    const handler = (msg: unknown) => {
       setMessages((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${JSON.stringify(msg)}`].slice(-5));
     };
     eventBus.on('message', handler);

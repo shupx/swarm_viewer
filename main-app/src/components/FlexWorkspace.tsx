@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { Layout, Model, TabNode, Actions, DockLocation, TabSetNode, Node } from 'flexlayout-react';
 import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
@@ -9,6 +9,23 @@ type MicroAppSource =
   | { type: 'relative-route'; value: string };
 
 interface MicroAppConfig {
+  name: string;
+  source?: MicroAppSource;
+  entry?: string;
+}
+
+interface LayoutNodeConfig {
+  component?: string;
+  config?: MicroAppConfig;
+  children?: LayoutNodeConfig[];
+}
+
+interface LayoutJsonConfig {
+  layout?: LayoutNodeConfig;
+  borders?: LayoutNodeConfig[];
+}
+
+interface AddPanelPayload {
   name: string;
   source?: MicroAppSource;
   entry?: string;
@@ -112,10 +129,10 @@ const normalizeConfig = (config: MicroAppConfig): MicroAppConfig => {
   return config;
 };
 
-const normalizeLayoutJson = (config: any) => {
+const normalizeLayoutJson = (config: LayoutJsonConfig) => {
   if (!config) return config;
 
-  const visit = (node: any) => {
+  const visit = (node?: LayoutNodeConfig) => {
     if (node?.component === 'sub-app' && node.config) {
       node.config = normalizeConfig(node.config);
     }
@@ -149,7 +166,7 @@ export const FlexWorkspace: React.FC = () => {
   });
   const layoutRef = useRef<Layout>(null);
 
-  const onAddPanel = (name: string, source?: MicroAppSource, entry?: string) => {
+  const onAddPanel = useCallback((name: string, source?: MicroAppSource, entry?: string) => {
     let targetId = model.getActiveTabset()?.getId();
     if (!targetId) targetId = 'main_tabset';
     
@@ -174,13 +191,16 @@ export const FlexWorkspace: React.FC = () => {
     if (welcomeNodeId) {
       model.doAction(Actions.deleteTab(welcomeNodeId));
     }
-  };
+  }, [model]);
 
   useEffect(() => {
-    const handler = (data: any) => onAddPanel(data.name, data.source, data.entry);
+    const handler = (data: unknown) => {
+      const payload = data as AddPanelPayload;
+      onAddPanel(payload.name, payload.source, payload.entry);
+    };
     eventBus.on('add-panel', handler);
     return () => { eventBus.off('add-panel', handler); };
-  }, []);
+  }, [onAddPanel]);
 
   useEffect(() => {
     const handleExport = () => {

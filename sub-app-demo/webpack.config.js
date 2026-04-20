@@ -5,7 +5,7 @@ const { name } = require('./package.json');
 module.exports = {
   entry: './src/main.tsx',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, '../dist/sub-app-demo'),
     filename: '[name].[contenthash].js',
     publicPath: 'auto',
     clean: true,

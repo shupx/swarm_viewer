@@ -6,7 +6,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
   entry: './src/main.tsx',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, '../dist'),
     filename: '[name].[contenthash].js',
     publicPath: '/',
     
@@ -44,7 +44,7 @@ module.exports = {
       patterns: [
         {
           from: path.resolve(__dirname, 'public'),
-          to: path.resolve(__dirname, 'dist'),
+          to: path.resolve(__dirname, '../dist'),
           noErrorOnMissing: true,
         },
       ],
@@ -64,7 +64,7 @@ module.exports = {
         watch: true,
       },
       {
-        directory: path.resolve(__dirname, '../sub-app-demo/dist'),
+        directory: path.resolve(__dirname, '../dist/sub-app-demo'),
         publicPath: '/sub-app-demo/',
         watch: true,
       },

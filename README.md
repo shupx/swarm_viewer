@@ -10,30 +10,36 @@ Swarm Viewer 是一个基于微前端架构（qiankun）建设的容器型平台
 
 ## ⚙️ 第一步：安装依赖
 
-在初次运行项目之前，需要分别为主应用和子应用安装依赖：
+在初次运行项目之前，在项目根目录安装依赖即可：
 
 ```bash
-# 1. 安装主应用依赖
-cd main-app
-npm install
-
-# 2. 安装子应用依赖
-cd ../sub-app-demo
 npm install
 ```
 
 ## 🚀 第二步：开发与运行
+
+现在推荐直接在项目根目录执行统一脚本。
 
 ### 方式一：使用一键启动脚本（推荐）
 
 回到项目根目录（`swarm_viewer`），运行脚本：
 
 ```bash
-./start.sh
+npm run dev
 ```
 
-> **注意：** 该脚本会启动主应用开发服务器，并 watch 构建子应用到自己的 `sub-app-demo/dist` 目录；主应用会把该目录托管为 `/sub-app-demo/`。
+> **注意：** 该命令会启动主应用开发服务器，并 watch 构建子应用到项目根目录的 `dist/sub-app-demo`；主应用与子应用最终产物统一输出到项目根目录 `dist/`。
 > 启动成功后，浏览器访问：**http://localhost:5173**
+
+### 方式二：统一构建
+
+在项目根目录执行：
+
+```bash
+npm run build
+```
+
+> 该命令会先构建 `sub-app-demo`，再构建 `main-app`，并把最终产物统一输出到项目根目录 `dist/`。
 
 ### 方式二：手动独立启动
 
@@ -51,7 +57,7 @@ npm run dev
 cd sub-app-demo
 npm run dev
 ```
-> 子应用不再单独提供 `5174` 服务，而是输出到自己的 `sub-app-demo/dist`，由主应用同站点托管为 `http://localhost:5173/sub-app-demo/`。
+> 子应用不再单独提供 `5174` 服务，而是输出到项目根目录的 `dist/sub-app-demo`，由主应用同站点托管为 `http://localhost:5173/sub-app-demo/`。
 
 ## 💡 功能验证与体验指南
 

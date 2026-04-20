@@ -17,82 +17,68 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
+  const parent = node?.getParent();
+  const isMaximized = model?.getMaximizedTabset()?.getId() === parent?.getId();
 
   useEffect(() => {
-    if (model && node) {
-      const parent = node.getParent();
-      setIsMaximized(model.getMaximizedTabset()?.getId() === parent?.getId());
-    }
-  }, [isHovered, model, node]);
+    const loadApp = async () => {
+      if (!containerRef.current) return;
 
-  const loadApp = async () => {
-    if (!containerRef.current) return;
-    
-    // Clean up previous instance if there is one
-    if (microAppRef.current) {
-      if (microAppRef.current.getStatus() === 'MOUNTED') {
-        try {
-          await microAppRef.current.unmount();
-        } catch (e) {
-          console.error('Failed to unmount previous instance', e);
+      if (microAppRef.current) {
+        if (microAppRef.current.getStatus() === 'MOUNTED') {
+          try {
+            await microAppRef.current.unmount();
+          } catch (e) {
+            console.error('Failed to unmount previous instance', e);
+          }
         }
+        microAppRef.current = null;
       }
-      microAppRef.current = null;
-    }
-    
-    // Clear container
-    if (containerRef.current) {
+
       containerRef.current.innerHTML = '';
-    }
+      setError(null);
+      setLoading(true);
 
-    setError(null);
-    setLoading(true);
+      try {
+        const entryUrl = new URL(entry, window.location.href);
+        entryUrl.searchParams.set('t', Date.now().toString());
 
-    try {
-      // Add a timestamp query param to bypass qiankun's internal import-html-entry cache on the entry URL
-      const entryUrl = new URL(entry, window.location.href);
-      entryUrl.searchParams.set('t', Date.now().toString());
-
-      const safeName = name.replace(/[^a-zA-Z0-9-]/g, '-');
-      microAppRef.current = loadMicroApp(
-        {
-          name: `${safeName}-${Math.random().toString(36).substring(7)}`, // Ensure unique name for multiple instances
-          entry: entryUrl.toString(),
-          container: containerRef.current,
-          props: {
-            eventBus, // Inject event bus
+        const safeName = name.replace(/[^a-zA-Z0-9-]/g, '-');
+        microAppRef.current = loadMicroApp(
+          {
+            name: `${safeName}-${Math.random().toString(36).substring(7)}`,
+            entry: entryUrl.toString(),
+            container: containerRef.current,
+            props: {
+              eventBus,
+            },
           },
-        },
-        {
-          sandbox: { strictStyleIsolation: false, experimentalStyleIsolation: true },
-        }
-      );
+          {
+            sandbox: { strictStyleIsolation: false, experimentalStyleIsolation: true },
+          }
+        );
 
-      // Catch all promises from qiankun to prevent UnhandledPromiseRejection global errors
-      // but still log them to the console for debugging purposes
-      microAppRef.current.loadPromise.catch((err) => {
-        console.warn(`[qiankun load] Failed to load ${name}:`, err.message || err);
-      });
-      microAppRef.current.bootstrapPromise.catch((err) => {
-        console.warn(`[qiankun bootstrap] Failed to bootstrap ${name}:`, err.message || err);
-      });
-
-      microAppRef.current.mountPromise
-        .then(() => setLoading(false))
-        .catch((err) => {
-          console.error(`Failed to mount ${name}:`, err);
-          setError(err.message || 'Failed to manually mount micro app');
-          setLoading(false);
+        microAppRef.current.loadPromise.catch((err) => {
+          console.warn(`[qiankun load] Failed to load ${name}:`, err.message || err);
+        });
+        microAppRef.current.bootstrapPromise.catch((err) => {
+          console.warn(`[qiankun bootstrap] Failed to bootstrap ${name}:`, err.message || err);
         });
 
-    } catch (err: any) {
-      setError(err.message || 'Error loading micro app');
-      setLoading(false);
-    }
-  };
+        microAppRef.current.mountPromise
+          .then(() => setLoading(false))
+          .catch((err) => {
+            console.error(`Failed to mount ${name}:`, err);
+            setError(err.message || 'Failed to manually mount micro app');
+            setLoading(false);
+          });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Error loading micro app';
+        setError(message);
+        setLoading(false);
+      }
+    };
 
-  useEffect(() => {
     loadApp();
 
     return () => {
@@ -122,7 +108,6 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
       const parent = node.getParent();
       if (parent) {
         model.doAction(Actions.maximizeToggle(parent.getId()));
-        setIsMaximized(!isMaximized);
       }
     }
   };

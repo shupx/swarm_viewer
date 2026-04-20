@@ -20,7 +20,7 @@ function App() {
 
   // Listen to bus messages
   useEffect(() => {
-    const handler = (msg: any) => {
+    const handler = (msg: unknown) => {
       setMessages((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${JSON.stringify(msg)}`].slice(-5));
     };
     eventBus.on('message', handler);
@@ -80,7 +80,7 @@ function App() {
     setShowSettingsMenu(false);
   };
 
-  const handleImportLayout = (e: any) => {
+  const handleImportLayout = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -91,7 +91,7 @@ function App() {
     reader.readAsText(file);
     setShowSettingsMenu(false);
     // reset input
-    e.target.value = null;
+    e.target.value = '';
   };
 
   return (
