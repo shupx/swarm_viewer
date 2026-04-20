@@ -2,13 +2,9 @@
   "name": "swarm-viewer",
   "private": true,
   "version": "0.0.0",
-  "workspaces": [
-    "main-app",
-    "sub-app-demo"
-  ],
   "scripts": {
     "dev": "./start.sh",
-    "build": "npm run build -w sub-app-demo && npm run build -w main-app",
-    "lint": "npm run lint -w main-app && npm run lint -w sub-app-demo"
+    "build": "pnpm --filter sub-app-demo build && pnpm --filter main-app build",
+    "lint": "pnpm --filter main-app lint && pnpm --filter sub-app-demo lint"
   }
 }
