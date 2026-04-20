@@ -25,17 +25,33 @@ function App() {
   const loadSubAppDemo = () => {
     eventBus.emit('add-panel', {
       name: 'sub-app-demo',
-      entry: 'http://localhost:5174', // Default sub-app port
+      entry: new URL('/sub-app-demo/', window.location.origin).toString(),
     });
     setShowAddMenu(false);
   };
 
   const loadCustomApp = () => {
     if (customAppName && customAppUrl) {
-      let finalUrl = customAppUrl;
+      let finalUrl = customAppUrl.trim();
       if (!/^https?:\/\//i.test(finalUrl)) {
         finalUrl = 'http://' + finalUrl;
       }
+
+      try {
+        const normalizedUrl = new URL(finalUrl);
+        const pathname = normalizedUrl.pathname;
+        const lastSegment = pathname.split('/').filter(Boolean).pop() ?? '';
+        const looksLikeFile = lastSegment.includes('.');
+
+        if (!pathname.endsWith('/') && !looksLikeFile) {
+          normalizedUrl.pathname = `${pathname}/`;
+        }
+
+        finalUrl = normalizedUrl.toString();
+      } catch (error) {
+        console.error('Invalid custom app URL', error);
+      }
+
       eventBus.emit('add-panel', {
         name: customAppName,
         entry: finalUrl,

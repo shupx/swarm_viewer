@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "webpack serve --mode development",
+    "dev": "webpack --mode development --watch",
     "build": "webpack --mode production",
     "lint": "eslint .",
-    "preview": "webpack serve --mode production"
+    "preview": "webpack --mode production --watch"
   },
   "dependencies": {
     "mitt": "^3.0.1",

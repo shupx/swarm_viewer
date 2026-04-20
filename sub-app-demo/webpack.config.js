@@ -8,6 +8,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].[contenthash].js',
     publicPath: 'auto',
+    clean: true,
     
     library: `${name}-[name]`,
     libraryTarget: 'umd',
@@ -44,11 +45,4 @@ module.exports = {
       template: './index.html',
     }),
   ],
-  devServer: {
-    port: 5174,
-    historyApiFallback: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
-  },
 };

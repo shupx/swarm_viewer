@@ -42,6 +42,18 @@ module.exports = {
   ],
   devServer: {
     port: 5173,
+    static: [
+      {
+        directory: path.resolve(__dirname, 'dist'),
+        publicPath: '/',
+        watch: true,
+      },
+      {
+        directory: path.resolve(__dirname, '../sub-app-demo/dist'),
+        publicPath: '/sub-app-demo/',
+        watch: true,
+      },
+    ],
     historyApiFallback: true,
     headers: {
       'Access-Control-Allow-Origin': '*',

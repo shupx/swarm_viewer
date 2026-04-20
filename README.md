@@ -6,7 +6,7 @@ Swarm Viewer 是一个基于微前端架构（qiankun）建设的容器型平台
 
 - `main-app/`: 基座主应用（Webpack + React）。提供全局布局框架、菜单栏、微前端组件加载器 (`MicroAppRenderer`)，以及基于 `mitt` 开发的全局事件总线。
 - `sub-app-demo/`: 示例子应用（Webpack + React）。编译为 UMD 格式天然完美适配了 qiankun 的生命周期（解决了 Vite ESM 模式下多实例同界面的模块执行缓存冲突），并接收主应用下发的 `eventBus` 实现跨应用、跨组件的通信联动。
-- `start.sh`: 一键启动主/子应用开发服务器的 bash 脚本。
+- `start.sh`: 一键启动主应用开发服务器，并在后台 watch 构建示例子应用；主应用会把子应用 `dist` 挂载到 `/sub-app-demo/`。
 
 ## ⚙️ 第一步：安装依赖
 
@@ -32,7 +32,7 @@ npm install
 ./start.sh
 ```
 
-> **注意：** 该脚本会同时启动主应用（在后台运行）和子应用。
+> **注意：** 该脚本会启动主应用开发服务器，并 watch 构建子应用到自己的 `sub-app-demo/dist` 目录；主应用会把该目录托管为 `/sub-app-demo/`。
 > 启动成功后，浏览器访问：**http://localhost:5173**
 
 ### 方式二：手动独立启动
@@ -46,12 +46,12 @@ npm run dev
 ```
 > 主应用将在 `5173` 端口运行。
 
-**终端 2（子应用）**
+**终端 2（子应用 watch 构建）**
 ```bash
 cd sub-app-demo
-npm run dev -- --port 5174
+npm run dev
 ```
-> 子应用必须在 `5174` 端口运行，以配合主应用的默认配置映射。
+> 子应用不再单独提供 `5174` 服务，而是输出到自己的 `sub-app-demo/dist`，由主应用同站点托管为 `http://localhost:5173/sub-app-demo/`。
 
 ## 💡 功能验证与体验指南
 
