@@ -18,8 +18,7 @@ All commands related to the `@shupeixuan/micro-panel-hub` package itself should 
 ```bash
 cd micro-panel-hub
 pnpm install
-pnpm build
-pnpm build:lib
+pnpm build # equal to pnpm build:lib
 pnpm pack --dry-run
 ```
 

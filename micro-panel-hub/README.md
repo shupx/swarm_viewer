@@ -38,7 +38,7 @@ pnpm pack --dry-run
 | `MicroPanelDefinition` | Type | Default panel definition type | Used by `defaultPanels` |
 | `MicroAppSource` | Type | Child app source configuration type | Supports absolute and relative routes |
 | `MicroPanelHubEventBus` | Type | Event bus type | Based on `mitt` |
-| `@shupeixuan/micro-panel-hub/styles.css` | Style entry | Imports the component styles | Recommended for host apps |
+| `@shupeixuan/micro-panel-hub/styles.css` | Style entry | Imports the complete package styles | Recommended for host apps |
 | `@shupeixuan/micro-panel-hub/flexlayout-light.css` | Style entry | Imports the default FlexLayout theme styles | Useful when the host wants explicit control |
 
 ## Main Configuration Options

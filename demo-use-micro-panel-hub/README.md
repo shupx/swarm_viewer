@@ -17,4 +17,6 @@ pnpm dev
 file:../micro-panel-hub
 ```
 
-来引入包；`pnpm dev` 和 `pnpm build` 都会先调用兄弟目录中的库构建。
+来引入包；`pnpm dev` 和 `pnpm build` 都会先调用兄弟目录中的库构建，再执行一次本地依赖同步。
+
+这是因为 `file:` 目录依赖在 `pnpm install` 后会使用安装时的包产物快照。只重新构建 `../micro-panel-hub` 并不会自动刷新 demo 里的 `node_modules/@shupeixuan/micro-panel-hub`，像 `styles.css` 这类产物就可能还是旧版本，表现出来就是页面结构更新了，但样式没有跟上。

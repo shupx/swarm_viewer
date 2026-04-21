@@ -52,6 +52,10 @@ jobs:
         working-directory: micro-panel-hub
         run: pnpm install --frozen-lockfile
 
+      - name: Build library package
+        working-directory: micro-panel-hub
+        run: pnpm build
+
       - name: Install demo dependencies
         working-directory: demo-use-micro-panel-hub
         run: pnpm install --frozen-lockfile
