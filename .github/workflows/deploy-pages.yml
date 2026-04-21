@@ -19,6 +19,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
+      build_time: ${{ steps.meta.outputs.build_time }}
       head_sha: ${{ steps.meta.outputs.head_sha }}
     steps:
       - name: Checkout
@@ -27,7 +28,9 @@ jobs:
       - name: Compute build metadata
         id: meta
         shell: bash
-        run: echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -91,6 +94,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
@@ -148,42 +153,102 @@ jobs:
               }
             }
 
-      - name: Remove existing latest release
+      - name: Upsert latest release metadata
         uses: actions/github-script@v7
+        id: latest-release
+        env:
+          BUILD_TIME: ${{ needs.build.outputs.build_time }}
+          HEAD_SHA: ${{ needs.build.outputs.head_sha }}
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         with:
           script: |
+            const tag = 'latest';
+            const releaseName = 'Latest Build';
+            const releaseBody = [
+              `Automated latest build for commit \`${process.env.HEAD_SHA}\`.`,
+              '',
+              `Build time: \`${process.env.BUILD_TIME}\``,
+              `Pages URL: ${process.env.PAGE_URL || 'Unavailable'}`,
+              '',
+              'This release contains the GitHub Pages `dist/` artifact as a downloadable archive.',
+            ].join('\n');
+
             try {
               const { data: release } = await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag: 'latest',
+                tag,
               });
 
-              core.info(`Deleting release ${release.name || release.tag_name} (${release.id})`);
-              await github.rest.repos.deleteRelease({
+              core.info(`Updating existing release ${release.name || release.tag_name} (${release.id})`);
+              const { data: updatedRelease } = await github.rest.repos.updateRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 release_id: release.id,
+                tag_name: tag,
+                target_commitish: process.env.HEAD_SHA,
+                name: releaseName,
+                body: releaseBody,
+                draft: false,
+                prerelease: false,
+                make_latest: 'true',
               });
+              core.setOutput('release_id', String(updatedRelease.id));
             } catch (error) {
-              if (error.status !== 404) {
+              if (error.status === 404) {
+                core.info('No existing latest release found, creating one');
+                const { data: createdRelease } = await github.rest.repos.createRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag_name: tag,
+                  target_commitish: process.env.HEAD_SHA,
+                  name: releaseName,
+                  body: releaseBody,
+                  draft: false,
+                  prerelease: false,
+                  make_latest: 'true',
+                });
+                core.setOutput('release_id', String(createdRelease.id));
+              } else {
                 throw error;
               }
-              core.info('No existing latest release found');
             }
 
-      - name: Publish latest release
-        uses: softprops/action-gh-release@v2
+      - name: Replace latest release asset
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          tag_name: latest
-          name: Latest Build
-          prerelease: false
-          make_latest: true
-          target_commitish: ${{ needs.build.outputs.head_sha }}
-          body: |
-            Automated latest build for commit `${{ needs.build.outputs.head_sha }}`.
+          script: |
+            const fs = require('fs');
+            const assetName = 'swarm-viewer-dist-latest.tar.gz';
+            const assetPath = 'release-upload/swarm-viewer-dist-latest.tar.gz';
+            const releaseId = Number('${{ steps.latest-release.outputs.release_id }}');
 
-            This release contains the GitHub Pages `dist/` artifact as a downloadable archive.
-          files: |
-            release-upload/swarm-viewer-dist-latest.tar.gz
-          overwrite_files: true
+            const { data: release } = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+            });
+
+            for (const asset of release.assets) {
+              if (asset.name === assetName) {
+                core.info(`Deleting existing asset ${asset.name} (${asset.id})`);
+                await github.rest.repos.deleteReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  asset_id: asset.id,
+                });
+              }
+            }
+
+            const assetData = fs.readFileSync(assetPath);
+            await github.rest.repos.uploadReleaseAsset({
+              url: release.upload_url,
+              headers: {
+                'content-type': 'application/gzip',
+                'content-length': assetData.length,
+              },
+              name: assetName,
+              data: assetData,
+            });
