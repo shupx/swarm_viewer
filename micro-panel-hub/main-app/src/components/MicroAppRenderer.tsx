@@ -1,7 +1,14 @@
-import React, { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from 'react';
-import { loadMicroApp, type MicroApp } from 'qiankun';
-import { eventBus } from '../utils/bus';
-import { TabNode, Model, Actions, Layout, DockLocation } from 'flexlayout-react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent as ReactDragEvent,
+} from "react";
+import { loadMicroApp, type MicroApp } from "qiankun";
+import { TabNode, Model, Actions, Layout, DockLocation } from "flexlayout-react";
+
+import type { MicroPanelHubEventBus } from "../types";
 
 interface MicroAppRendererProps {
   name: string;
@@ -9,9 +16,17 @@ interface MicroAppRendererProps {
   node?: TabNode;
   model?: Model;
   layout?: Layout;
+  eventBus: MicroPanelHubEventBus;
 }
 
-export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry, node, model, layout }) => {
+export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
+  name,
+  entry,
+  node,
+  model,
+  layout,
+  eventBus,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const microAppRef = useRef<MicroApp | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,74 +35,81 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({ name, entry,
   const parent = node?.getParent();
   const isMaximized = model?.getMaximizedTabset()?.getId() === parent?.getId();
 
-  useEffect(() => {
-    const loadApp = async () => {
-      if (!containerRef.current) return;
+  const loadApp = useCallback(async () => {
+    if (!containerRef.current) return;
 
-      if (microAppRef.current) {
-        if (microAppRef.current.getStatus() === 'MOUNTED') {
-          try {
-            await microAppRef.current.unmount();
-          } catch (e) {
-            console.error('Failed to unmount previous instance', e);
-          }
+    const container = containerRef.current;
+    const currentMicroApp = microAppRef.current;
+
+    if (currentMicroApp) {
+      if (currentMicroApp.getStatus() === "MOUNTED") {
+        try {
+          await currentMicroApp.unmount();
+        } catch (e) {
+          console.error("Failed to unmount previous instance", e);
         }
-        microAppRef.current = null;
       }
+      microAppRef.current = null;
+    }
 
-      containerRef.current.innerHTML = '';
-      setError(null);
-      setLoading(true);
+    container.innerHTML = "";
+    setError(null);
+    setLoading(true);
 
-      try {
-        const entryUrl = new URL(entry, window.location.href);
-        entryUrl.searchParams.set('t', Date.now().toString());
+    try {
+      const entryUrl = new URL(entry, window.location.href);
+      entryUrl.searchParams.set("t", Date.now().toString());
 
-        const safeName = name.replace(/[^a-zA-Z0-9-]/g, '-');
-        microAppRef.current = loadMicroApp(
-          {
-            name: `${safeName}-${Math.random().toString(36).substring(7)}`,
-            entry: entryUrl.toString(),
-            container: containerRef.current,
-            props: {
-              eventBus,
-            },
+      const safeName = name.replace(/[^a-zA-Z0-9-]/g, "-");
+      const microApp = loadMicroApp(
+        {
+          name: `${safeName}-${Math.random().toString(36).substring(7)}`,
+          entry: entryUrl.toString(),
+          container,
+          props: {
+            eventBus,
           },
-          {
-            sandbox: { strictStyleIsolation: false, experimentalStyleIsolation: true },
-          }
-        );
+        },
+        {
+          sandbox: { strictStyleIsolation: false, experimentalStyleIsolation: true },
+        },
+      );
 
-        microAppRef.current.loadPromise.catch((err) => {
-          console.warn(`[qiankun load] Failed to load ${name}:`, err.message || err);
+      microAppRef.current = microApp;
+
+      microApp.loadPromise.catch((err) => {
+        console.warn(`[qiankun load] Failed to load ${name}:`, err.message || err);
+      });
+      microApp.bootstrapPromise.catch((err) => {
+        console.warn(`[qiankun bootstrap] Failed to bootstrap ${name}:`, err.message || err);
+      });
+
+      microApp.mountPromise
+        .then(() => setLoading(false))
+        .catch((err) => {
+          console.error(`Failed to mount ${name}:`, err);
+          setError(err.message || "Failed to manually mount micro app");
+          setLoading(false);
         });
-        microAppRef.current.bootstrapPromise.catch((err) => {
-          console.warn(`[qiankun bootstrap] Failed to bootstrap ${name}:`, err.message || err);
-        });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error loading micro app";
+      setError(message);
+      setLoading(false);
+    }
+  }, [entry, eventBus, name]);
 
-        microAppRef.current.mountPromise
-          .then(() => setLoading(false))
-          .catch((err) => {
-            console.error(`Failed to mount ${name}:`, err);
-            setError(err.message || 'Failed to manually mount micro app');
-            setLoading(false);
-          });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Error loading micro app';
-        setError(message);
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
+    // qiankun mount triggers local loading/error state as part of synchronizing with the external micro-app runtime.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadApp();
 
+    const microApp = microAppRef.current;
     return () => {
-      // Unmount on cleanup
-      if (microAppRef.current && microAppRef.current.getStatus() === 'MOUNTED') {
-        microAppRef.current.unmount().catch(console.error);
+      if (microApp && microApp.getStatus() === "MOUNTED") {
+        microApp.unmount().catch(console.error);
       }
     };
-  }, [name, entry]);
+  }, [loadApp]);
 
   const handleDrag = (e: ReactDragEvent) => {
     if (layout && node) {

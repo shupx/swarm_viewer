@@ -51,7 +51,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('micro-panel-hub/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
@@ -59,32 +59,35 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
+        working-directory: micro-panel-hub
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        working-directory: micro-panel-hub
         run: pnpm build
 
       - name: Package release asset
+        working-directory: micro-panel-hub
         shell: bash
         run: |
           set -euo pipefail
 
           rm -rf release-upload
           mkdir -p release-upload
-          tar -czf release-upload/swarm-viewer-dist-latest.tar.gz -C dist .
+          tar -czf release-upload/micro-panel-hub-dist-latest.tar.gz -C dist .
 
       - name: Upload release asset artifact
         uses: actions/upload-artifact@v4
         with:
-          name: swarm-viewer-release-asset
-          path: release-upload/swarm-viewer-dist-latest.tar.gz
+          name: micro-panel-hub-release-asset
+          path: release-upload/micro-panel-hub-dist-latest.tar.gz
           if-no-files-found: error
           retention-days: 7
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: micro-panel-hub/dist
 
   deploy:
     environment:
@@ -112,7 +115,7 @@ jobs:
       - name: Download release asset artifact
         uses: actions/download-artifact@v4
         with:
-          name: swarm-viewer-release-asset
+          name: micro-panel-hub-release-asset
           path: release-upload
 
       - name: Show release asset list
@@ -219,8 +222,8 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const assetName = 'swarm-viewer-dist-latest.tar.gz';
-            const assetPath = 'release-upload/swarm-viewer-dist-latest.tar.gz';
+            const assetName = 'micro-panel-hub-dist-latest.tar.gz';
+            const assetPath = 'release-upload/micro-panel-hub-dist-latest.tar.gz';
             const releaseId = Number('${{ steps.latest-release.outputs.release_id }}');
 
             const { data: release } = await github.rest.repos.getRelease({

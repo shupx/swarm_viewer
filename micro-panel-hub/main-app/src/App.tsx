@@ -1,50 +1,64 @@
-import { useState, useEffect } from 'react';
-import { FlexWorkspace } from './components/FlexWorkspace';
-import { eventBus } from './utils/bus';
-import { getRouteValue, resolvePageRelativeRouteUrl } from './utils/path';
-import './App.css';
+import { useState, useEffect } from "react";
+import { FlexWorkspace } from "./components/FlexWorkspace";
+import { resolveHubProps } from "./defaults";
+import { getRouteValue, resolvePageRelativeRouteUrl } from "./utils/path";
+import "./App.css";
 
-type CustomSourceMode = 'absolute-url' | 'site-relative-route' | 'page-relative-route';
+import type { CustomSourceMode, MicroPanelHubProps } from "./types";
 
-const DEFAULT_CUSTOM_APP_NAME = 'MyApp';
-const DEFAULT_RELATIVE_ROUTE = '/sub-app-demo/';
-const getDefaultCustomAppValue = (mode: CustomSourceMode) =>
-  mode === 'absolute-url' ? resolvePageRelativeRouteUrl(DEFAULT_RELATIVE_ROUTE) : getRouteValue(DEFAULT_RELATIVE_ROUTE);
+const getDefaultCustomAppValue = (mode: CustomSourceMode, defaultRelativeRoute: string) =>
+  mode === "absolute-url"
+    ? resolvePageRelativeRouteUrl(defaultRelativeRoute)
+    : getRouteValue(defaultRelativeRoute);
 
-function App() {
+function App(props: MicroPanelHubProps) {
+  const {
+    title,
+    defaultPanels,
+    defaultCustomAppName,
+    defaultRelativeRoute,
+    storageKey,
+    eventBus,
+    className,
+  } = resolveHubProps(props);
   const [messages, setMessages] = useState<string[]>([]);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [customAppName, setCustomAppName] = useState(DEFAULT_CUSTOM_APP_NAME);
-  const [customAppUrl, setCustomAppUrl] = useState(getDefaultCustomAppValue('page-relative-route'));
-  const [customSourceMode, setCustomSourceMode] = useState<CustomSourceMode>('page-relative-route');
+  const [customAppName, setCustomAppName] = useState(defaultCustomAppName);
+  const [customAppUrl, setCustomAppUrl] = useState(
+    getDefaultCustomAppValue("page-relative-route", defaultRelativeRoute),
+  );
+  const [customSourceMode, setCustomSourceMode] =
+    useState<CustomSourceMode>("page-relative-route");
 
-  // Listen to bus messages
   useEffect(() => {
     const handler = (msg: unknown) => {
-      setMessages((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${JSON.stringify(msg)}`].slice(-5));
+      setMessages((prev) =>
+        [...prev, `${new Date().toLocaleTimeString()} - ${JSON.stringify(msg)}`].slice(-5),
+      );
     };
-    eventBus.on('message', handler);
+    eventBus.on("message", handler);
     return () => {
-      eventBus.off('message', handler);
+      eventBus.off("message", handler);
     };
-  }, []);
+  }, [eventBus]);
 
-  const loadSubAppDemo = () => {
-    eventBus.emit('add-panel', {
-      name: 'sub-app-demo',
-      source: {
-        type: 'page-relative-route',
-        value: getRouteValue(DEFAULT_RELATIVE_ROUTE),
-      },
+  const loadDefaultPanel = () => {
+    const defaultPanel = defaultPanels[0];
+    if (!defaultPanel) return;
+
+    eventBus.emit("add-panel", {
+      name: defaultPanel.name,
+      source: defaultPanel.source,
+      entry: defaultPanel.entry,
     });
     setShowAddMenu(false);
   };
 
   const loadCustomApp = () => {
     if (customAppName && customAppUrl) {
-      eventBus.emit('add-panel', {
+      eventBus.emit("add-panel", {
         name: customAppName,
         source: {
           type: customSourceMode,
@@ -52,33 +66,33 @@ function App() {
         },
       });
       setShowCustomModal(false);
-      setCustomAppName(DEFAULT_CUSTOM_APP_NAME);
-      setCustomAppUrl(getDefaultCustomAppValue('page-relative-route'));
-      setCustomSourceMode('page-relative-route');
+      setCustomAppName(defaultCustomAppName);
+      setCustomAppUrl(getDefaultCustomAppValue("page-relative-route", defaultRelativeRoute));
+      setCustomSourceMode("page-relative-route");
     }
   };
 
   const openCustomModal = () => {
-    const defaultMode: CustomSourceMode = 'page-relative-route';
-    setCustomAppName(DEFAULT_CUSTOM_APP_NAME);
+    const defaultMode: CustomSourceMode = "page-relative-route";
+    setCustomAppName(defaultCustomAppName);
     setCustomSourceMode(defaultMode);
-    setCustomAppUrl(getDefaultCustomAppValue(defaultMode));
+    setCustomAppUrl(getDefaultCustomAppValue(defaultMode, defaultRelativeRoute));
     setShowCustomModal(true);
     setShowAddMenu(false);
   };
 
   const handleCustomSourceModeChange = (mode: CustomSourceMode) => {
     setCustomSourceMode(mode);
-    setCustomAppUrl(getDefaultCustomAppValue(mode));
+    setCustomAppUrl(getDefaultCustomAppValue(mode, defaultRelativeRoute));
   };
 
   const broadcastMessage = () => {
-    eventBus.emit('message', { from: 'main', text: 'Hello from Main App!' });
+    eventBus.emit("message", { from: "main", text: "Hello from Micro Panel Hub!" });
     setShowSettingsMenu(false);
   };
 
   const handleExportLayout = () => {
-    eventBus.emit('export-layout');
+    eventBus.emit("export-layout");
     setShowSettingsMenu(false);
   };
 
@@ -88,19 +102,18 @@ function App() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const jsonStr = event.target?.result as string;
-      eventBus.emit('import-layout', jsonStr);
+      eventBus.emit("import-layout", jsonStr);
     };
     reader.readAsText(file);
     setShowSettingsMenu(false);
-    // reset input
     e.target.value = '';
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${className}`.trim()}>
       <header className="top-menu">
         <div className="menu-left">
-          <span className="logo">Swarm Viewer</span>
+          <span className="logo">{title}</span>
           
           <div 
             className="menu-item"
@@ -110,7 +123,7 @@ function App() {
             Add
             {showAddMenu && (
               <div className="dropdown-menu">
-                <div className="dropdown-item" onClick={loadSubAppDemo}>Demo Sub App</div>
+                <div className="dropdown-item" onClick={loadDefaultPanel}>Demo Sub App</div>
                 <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
                 <div className="dropdown-divider"></div>
                 <div className="dropdown-item disabled">Recent...</div>
@@ -198,7 +211,12 @@ function App() {
       )}
 
       <main className="workspace-container">
-        <FlexWorkspace />
+        <FlexWorkspace
+          title={title}
+          storageKey={storageKey}
+          layoutDownloadName="micro-panel-hub-layout.json"
+          eventBus={eventBus}
+        />
       </main>
     </div>
   );

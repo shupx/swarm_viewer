@@ -1,14 +1,18 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
-import { Layout, Model, TabNode, Actions, DockLocation, TabSetNode, Node } from 'flexlayout-react';
-import 'flexlayout-react/style/light.css';
-import { MicroAppRenderer } from './MicroAppRenderer';
-import { eventBus } from '../utils/bus';
-import { resolvePageRelativeRouteUrl, resolveSiteRelativeRouteUrl } from '../utils/path';
+import React, { useCallback, useRef, useState, useEffect } from "react";
+import {
+  Layout,
+  Model,
+  TabNode,
+  Actions,
+  DockLocation,
+  TabSetNode,
+  Node,
+} from "flexlayout-react";
+import "flexlayout-react/style/light.css";
+import { MicroAppRenderer } from "./MicroAppRenderer";
+import { resolvePageRelativeRouteUrl, resolveSiteRelativeRouteUrl } from "../utils/path";
 
-type MicroAppSource =
-  | { type: 'absolute-url'; value: string }
-  | { type: 'site-relative-route'; value: string }
-  | { type: 'page-relative-route'; value: string };
+import type { MicroAppSource, MicroPanelHubEventBus } from "../types";
 
 interface MicroAppConfig {
   name: string;
@@ -33,13 +37,19 @@ interface AddPanelPayload {
   entry?: string;
 }
 
-// Default Layout Config - Restoring native tabs but with simple splitters
-const defaultConfig = {
+interface FlexWorkspaceProps {
+  title: string;
+  storageKey: string;
+  layoutDownloadName: string;
+  eventBus: MicroPanelHubEventBus;
+}
+
+const createDefaultConfig = (title: string) => ({
   global: {
     tabEnableClose: true,
     tabSetEnableMaximize: true,
-    tabSetEnableTabStrip: true, // We want the tabs back so user can drag them!
-    splitterSize: 3,             // Simple clean thin splitter
+    tabSetEnableTabStrip: true,
+    splitterSize: 3,
     splitterExtra: 4,
     enableEdgeDock: true,
     borderEnableTabStrip: true,
@@ -57,17 +67,15 @@ const defaultConfig = {
         enableTabStrip: false,
         children: [
           {
-            type: 'tab',
-            name: 'Welcome to Swarm',
-            component: 'welcome',
+            type: "tab",
+            name: `Welcome to ${title}`,
+            component: "welcome",
           },
         ],
       },
     ],
   },
-};
-
-const LOCAL_STORAGE_KEY = 'swarm_viewer_layout';
+});
 
 const normalizeRelativeRoute = (value: string) => {
   if (!value) return '/';
@@ -156,44 +164,54 @@ const normalizeLayoutJson = (config: LayoutJsonConfig) => {
   return config;
 };
 
-export const FlexWorkspace: React.FC = () => {
+export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
+  title,
+  storageKey,
+  layoutDownloadName,
+  eventBus,
+}) => {
   const [model, setModel] = useState<Model>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const normalized = normalizeLayoutJson(JSON.parse(saved));
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(normalized));
+        localStorage.setItem(storageKey, JSON.stringify(normalized));
         return Model.fromJson(normalized);
       } catch (e) {
-        console.error('Failed to parse saved layout', e);
+        console.error("Failed to parse saved layout", e);
       }
     }
-    return Model.fromJson(defaultConfig);
+    return Model.fromJson(createDefaultConfig(title));
   });
   const layoutRef = useRef<Layout>(null);
 
   const onAddPanel = useCallback((name: string, source?: MicroAppSource, entry?: string) => {
     let targetId = model.getActiveTabset()?.getId();
-    if (!targetId) targetId = 'main_tabset';
+    if (!targetId) targetId = "main_tabset";
     
     let welcomeNodeId: string | null = null;
     model.visitNodes((node: Node) => {
-      if (node.getType() === 'tab' && (node as TabNode).getComponent() === 'welcome') {
+      if (node.getType() === "tab" && (node as TabNode).getComponent() === "welcome") {
         welcomeNodeId = node.getId();
       }
     });
 
     const config = normalizeConfig({ name, source, entry });
 
-    // Add sub-app (replace welcome if it exists, otherwise split to the right)
-    model.doAction(Actions.addNode({
-      type: 'tab',
-      name: name,
-      component: 'sub-app',
-      config,
-    }, targetId, welcomeNodeId ? DockLocation.CENTER : DockLocation.RIGHT, -1));
+    model.doAction(
+      Actions.addNode(
+        {
+          type: "tab",
+          name,
+          component: "sub-app",
+          config,
+        },
+        targetId,
+        welcomeNodeId ? DockLocation.CENTER : DockLocation.RIGHT,
+        -1,
+      ),
+    );
 
-    // Automatically close welcome page
     if (welcomeNodeId) {
       model.doAction(Actions.deleteTab(welcomeNodeId));
     }
@@ -204,18 +222,22 @@ export const FlexWorkspace: React.FC = () => {
       const payload = data as AddPanelPayload;
       onAddPanel(payload.name, payload.source, payload.entry);
     };
-    eventBus.on('add-panel', handler);
-    return () => { eventBus.off('add-panel', handler); };
-  }, [onAddPanel]);
+    eventBus.on("add-panel", handler);
+    return () => {
+      eventBus.off("add-panel", handler);
+    };
+  }, [eventBus, onAddPanel]);
 
   useEffect(() => {
     const handleExport = () => {
       const currentModel = model;
       if (!currentModel) return;
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentModel.toJson(), null, 2));
-      const anchor = document.createElement('a');
+      const dataStr =
+        "data:text/json;charset=utf-8," +
+        encodeURIComponent(JSON.stringify(currentModel.toJson(), null, 2));
+      const anchor = document.createElement("a");
       anchor.setAttribute("href", dataStr);
-      anchor.setAttribute("download", "swarm_layout.json");
+      anchor.setAttribute("download", layoutDownloadName);
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -226,41 +248,47 @@ export const FlexWorkspace: React.FC = () => {
         const normalized = normalizeLayoutJson(JSON.parse(jsonStr));
         const newModel = Model.fromJson(normalized);
         setModel(newModel);
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newModel.toJson()));
+        localStorage.setItem(storageKey, JSON.stringify(newModel.toJson()));
       } catch (e) {
-        alert('Invalid layout JSON');
+        alert("Invalid layout JSON");
         console.error(e);
       }
     };
 
-    eventBus.on('export-layout', handleExport);
-    eventBus.on('import-layout', handleImport);
+    eventBus.on("export-layout", handleExport);
+    eventBus.on("import-layout", handleImport);
     return () => {
-      eventBus.off('export-layout', handleExport);
-      eventBus.off('import-layout', handleImport);
+      eventBus.off("export-layout", handleExport);
+      eventBus.off("import-layout", handleImport);
     };
-  }, [model]);
+  }, [eventBus, layoutDownloadName, model, storageKey]);
 
   const factory = (node: TabNode) => {
     const component = node.getComponent();
 
-    // Welcome Node
-    if (component === 'welcome') {
+    if (component === "welcome") {
       return (
         <div style={{ padding: 40, height: '100%', boxSizing: 'border-box', background: '#f8f9fa' }}>
-          <h2 style={{margin:0, color:'#2c3e50'}}>Swarm Viewer</h2>
-          <p style={{color:'#7f8c8d', marginTop: 12}}>The workspace is empty. Click "Add Sub-App Demo" from the top menu to start building your layout.</p>
+          <h2 style={{margin:0, color:'#2c3e50'}}>{title}</h2>
+          <p style={{color:'#7f8c8d', marginTop: 12}}>The workspace is empty. Click "Add Demo Sub App" from the top menu to start building your layout.</p>
           <p style={{color:'#7f8c8d'}}>You can drag the tabs above to re-arrange, split screens, or dock to edges.</p>
         </div>
       );
     }
     
-    // Sub-app Node
-    if (component === 'sub-app') {
+    if (component === "sub-app") {
       const config = node.getConfig();
       if (!config) return <div>Invalid config</div>;
       return (
-        <MicroAppRenderer name={config.name} entry={config.entry} key={node.getId()} node={node} model={model} layout={layoutRef.current || undefined} />
+        <MicroAppRenderer
+          name={config.name}
+          entry={config.entry}
+          key={node.getId()}
+          node={node}
+          model={model}
+          layout={layoutRef.current || undefined}
+          eventBus={eventBus}
+        />
       );
     }
 
@@ -269,13 +297,12 @@ export const FlexWorkspace: React.FC = () => {
 
   const onModelChange = (newModel: Model) => {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newModel.toJson()));
+      localStorage.setItem(storageKey, JSON.stringify(newModel.toJson()));
     } catch (e) {
-      console.error('Failed to save layout', e);
+      console.error("Failed to save layout", e);
     }
-    // Dynamically hide tab strip when there is only 1 tab
     newModel.visitNodes((n: Node) => {
-      if (n.getType() === 'tabset') {
+      if (n.getType() === "tabset") {
         const tabset = n as TabSetNode;
         const children = tabset.getChildren();
         const shouldShowTabs = children.length > 1;

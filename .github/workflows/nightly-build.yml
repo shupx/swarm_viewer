@@ -1,0 +1,342 @@
+name: Nightly npm publish
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Force rebuild and republish even when HEAD matches the last successful nightly run
+        required: false
+        default: false
+        type: boolean
+      publish_npm:
+        description: Publish built package to npm
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: nightly-build
+  cancel-in-progress: false
+
+jobs:
+  check-changes:
+    name: Check nightly source changes
+    runs-on: ubuntu-24.04
+    outputs:
+      should_build: ${{ steps.release-check.outputs.should_build }}
+      build_date: ${{ steps.meta.outputs.build_date }}
+      build_seq: ${{ steps.meta.outputs.build_seq }}
+      nightly_version: ${{ steps.meta.outputs.nightly_version }}
+      head_sha: ${{ steps.meta.outputs.head_sha }}
+      trigger_mode: ${{ steps.meta.outputs.trigger_mode }}
+      forced_build: ${{ steps.meta.outputs.forced_build }}
+      publish_npm: ${{ steps.meta.outputs.publish_npm }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Compute build metadata
+        id: meta
+        shell: bash
+        env:
+          FORCE_BUILD: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
+          PUBLISH_NPM: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
+        run: |
+          build_date="$(date -u +%Y%m%d)"
+          build_seq="$(printf '%02d' "${GITHUB_RUN_ATTEMPT}")"
+          nightly_version="1.0.0-dev.${build_date}.${build_seq}"
+          echo "build_date=${build_date}" >> "$GITHUB_OUTPUT"
+          echo "build_seq=${build_seq}" >> "$GITHUB_OUTPUT"
+          echo "nightly_version=${nightly_version}" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "trigger_mode=${GITHUB_EVENT_NAME}" >> "$GITHUB_OUTPUT"
+          echo "forced_build=${FORCE_BUILD}" >> "$GITHUB_OUTPUT"
+          echo "publish_npm=${PUBLISH_NPM}" >> "$GITHUB_OUTPUT"
+
+      - name: Compare against latest successful nightly run
+        id: release-check
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ steps.meta.outputs.head_sha }}
+          FORCE_BUILD: ${{ steps.meta.outputs.forced_build }}
+        with:
+          script: |
+            let shouldBuild = true;
+            const workflowId = '.github/workflows/nightly-build.yml';
+            const forceBuild = String(process.env.FORCE_BUILD || '').toLowerCase() === 'true';
+
+            if (forceBuild) {
+              core.info('Force rebuild requested for workflow_dispatch; skipping prior-run SHA comparison.');
+              core.setOutput('should_build', 'true');
+              return;
+            }
+
+            try {
+              const branch = context.ref.startsWith('refs/heads/')
+                ? context.ref.replace('refs/heads/', '')
+                : undefined;
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: workflowId,
+                ...(branch ? { branch } : {}),
+                status: 'success',
+                per_page: 10,
+              });
+
+              const currentRunId = Number(process.env.GITHUB_RUN_ID || '0');
+              const previousSuccessfulRun = (data.workflow_runs || []).find(
+                (run) => run.id !== currentRunId
+              );
+              const lastSha = previousSuccessfulRun?.head_sha || '';
+
+              core.info(`Current HEAD: ${process.env.HEAD_SHA}`);
+              core.info(`Previous successful nightly SHA: ${lastSha || 'not found'}`);
+
+              if (lastSha === process.env.HEAD_SHA) {
+                shouldBuild = false;
+              }
+            } catch (error) {
+              core.warning(`Unable to inspect prior nightly runs: ${error.message}`);
+            }
+
+            core.setOutput('should_build', shouldBuild ? 'true' : 'false');
+
+      - name: Write summary
+        shell: bash
+        run: |
+          {
+            echo "## Nightly build decision"
+            echo
+            echo "- Trigger mode: \`${{ steps.meta.outputs.trigger_mode }}\`"
+            echo "- Forced build: \`${{ steps.meta.outputs.forced_build }}\`"
+            echo "- Publish npm: \`${{ steps.meta.outputs.publish_npm }}\`"
+            echo "- Nightly version: \`${{ steps.meta.outputs.nightly_version }}\`"
+            echo "- HEAD SHA: \`${{ steps.meta.outputs.head_sha }}\`"
+            echo "- Should build: \`${{ steps.release-check.outputs.should_build }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build nightly npm package
+    needs: check-changes
+    if: needs.check-changes.outputs.should_build == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+
+      - name: Prepare nightly version
+        working-directory: micro-panel-hub
+        shell: bash
+        env:
+          NIGHTLY_VERSION: ${{ needs.check-changes.outputs.nightly_version }}
+        run: |
+          node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version=process.env.NIGHTLY_VERSION; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Install dependencies
+        working-directory: micro-panel-hub
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        working-directory: micro-panel-hub
+        run: pnpm build:lib
+
+      - name: Pack nightly package
+        working-directory: micro-panel-hub
+        shell: bash
+        run: |
+          mkdir -p nightly-dist
+          npm pack --pack-destination nightly-dist
+
+      - name: Upload nightly artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-dist
+          path: |
+            micro-panel-hub/lib/**
+            micro-panel-hub/package.json
+            micro-panel-hub/README.md
+            micro-panel-hub/LICENSE
+            micro-panel-hub/nightly-dist/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish nightly release
+    needs:
+      - check-changes
+      - build
+    if: needs.check-changes.outputs.should_build == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download nightly artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nightly-dist
+          path: nightly-dist
+
+      - name: Show nightly artifacts
+        shell: bash
+        run: find nightly-dist -maxdepth 3 -type f | sort
+
+      - name: Delete existing nightly release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let release = null;
+
+            try {
+              const response = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: 'nightly',
+              });
+              release = response.data;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            if (!release) {
+              const { data } = await github.rest.repos.listReleases({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              });
+
+              release = (data || []).find((item) =>
+                item.tag_name === 'nightly' || item.name === 'Nightly npm Build'
+              ) || null;
+            }
+
+            if (!release) {
+              core.info('No existing nightly release found.');
+              return;
+            }
+
+            core.info(`Deleting nightly release ${release.id}`);
+            await github.rest.repos.deleteRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+            });
+
+      - name: Move nightly tag to current commit
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ needs.check-changes.outputs.head_sha }}
+        with:
+          script: |
+            try {
+              await github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'tags/nightly',
+                sha: process.env.HEAD_SHA,
+                force: true,
+              });
+              core.info(`Updated tag nightly to ${process.env.HEAD_SHA}`);
+            } catch (error) {
+              if (
+                error.status === 404 ||
+                (error.status === 422 && /Reference does not exist/i.test(error.message || ''))
+              ) {
+                await github.rest.git.createRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: 'refs/tags/nightly',
+                  sha: process.env.HEAD_SHA,
+                });
+                core.info(`Created tag nightly at ${process.env.HEAD_SHA}`);
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Publish nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: Nightly npm Build
+          prerelease: true
+          make_latest: false
+          target_commitish: ${{ needs.check-changes.outputs.head_sha }}
+          body: |
+            Automated nightly npm build for commit `${{ needs.check-changes.outputs.head_sha }}`.
+
+            Nightly version: `${{ needs.check-changes.outputs.nightly_version }}`
+            Build date: `${{ needs.check-changes.outputs.build_date }}`
+            Build sequence: `${{ needs.check-changes.outputs.build_seq }}`
+            Trigger mode: `${{ needs.check-changes.outputs.trigger_mode }}`
+            Forced build: `${{ needs.check-changes.outputs.forced_build }}`
+            Publish npm: `${{ needs.check-changes.outputs.publish_npm }}`
+
+            <!-- nightly-source-sha: ${{ needs.check-changes.outputs.head_sha }} -->
+          files: |
+            nightly-dist/*.tgz
+          overwrite_files: true
+
+  publish-npm:
+    name: Publish nightly package to npm
+    needs:
+      - check-changes
+      - build
+    if: needs.check-changes.outputs.should_build == 'true' && needs.check-changes.outputs.publish_npm == 'true'
+    runs-on: ubuntu-24.04
+    environment:
+      name: npm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install --global npm@11.5.1
+
+      - name: Set nightly package version
+        working-directory: micro-panel-hub
+        shell: bash
+        env:
+          NIGHTLY_VERSION: ${{ needs.check-changes.outputs.nightly_version }}
+        run: |
+          node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version=process.env.NIGHTLY_VERSION; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Install dependencies
+        working-directory: micro-panel-hub
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        working-directory: micro-panel-hub
+        run: pnpm build:lib
+
+      - name: Publish to npm with trusted publishing
+        working-directory: micro-panel-hub
+        run: npm publish --access public --provenance

@@ -1,0 +1,51 @@
+{
+  "name": "@shupeixuan/micro-panel-hub",
+  "version": "1.0.0-dev.20260421.01",
+  "description": "Embeddable React micro frontend workspace shell built with qiankun and flexlayout-react.",
+  "license": "MIT",
+  "homepage": "https://github.com/shupx/micro-panel-hub#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shupx/micro-panel-hub.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./lib/index.js",
+  "module": "./lib/index.mjs",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.mjs",
+      "require": "./lib/index.js"
+    },
+    "./styles.css": "./lib/styles.css",
+    "./flexlayout-light.css": "./lib/flexlayout-light.css"
+  },
+  "files": [
+    "lib",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "./start.sh",
+    "build": "pnpm run build:site && pnpm run build:lib",
+    "build:site": "pnpm --filter sub-app-demo build && pnpm --filter main-app build",
+    "build:lib": "pnpm exec tsup --config tsup.config.ts && mkdir -p lib && cp main-app/src/index.css lib/styles.css && cp node_modules/flexlayout-react/style/light.css lib/flexlayout-light.css",
+    "lint": "pnpm --filter main-app lint && pnpm --filter sub-app-demo lint",
+    "pack:check": "pnpm pack --dry-run"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "dependencies": {
+    "flexlayout-react": "^0.8.19",
+    "mitt": "^3.0.1",
+    "qiankun": "^2.10.16"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0"
+  }
+}

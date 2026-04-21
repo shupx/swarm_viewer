@@ -1,0 +1,13 @@
+{
+  "extends": "./main-app/tsconfig.app.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["main-app/src/**/*", "tsup.config.ts"]
+}
