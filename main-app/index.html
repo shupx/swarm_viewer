@@ -5,32 +5,6 @@
     <link rel="icon" type="image/svg+xml" href="/react.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Swarm Viewer</title>
-    <script>
-      window.onerror = function(msg, url, line, col, error) {
-        const d = document.createElement('div');
-        d.style.color = 'red';
-        d.style.position = 'absolute';
-        d.style.zIndex = '9999';
-        d.style.top = '10px';
-        d.style.left = '10px';
-        d.style.background = 'white';
-        d.style.padding = '10px';
-        d.innerHTML = 'ERROR: ' + msg + '<br>' + (error ? error.stack : '');
-        document.body.appendChild(d);
-      };
-      window.addEventListener('unhandledrejection', function(event) {
-        const d = document.createElement('div');
-        d.style.color = 'red';
-        d.style.position = 'absolute';
-        d.style.zIndex = '9999';
-        d.style.top = '60px';
-        d.style.left = '10px';
-        d.style.background = 'white';
-        d.style.padding = '10px';
-        d.innerHTML = 'Promise Rejection: ' + event.reason;
-        document.body.appendChild(d);
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
