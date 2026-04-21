@@ -1,47 +1,47 @@
-# micro-panel-hub构建
+# micro-panel-hub Package Build
 
-## 项目结构
+## Project Structure
 
-- `main-app/`: 库入口与内部 UI 逻辑源码
-- `sub-app-demo/`: 仓库内置的示例微应用源码，用于库能力验证
-- `lib/`: npm 包发布产物目录
+- `main-app/`: library entry code and internal UI logic
+- `sub-app-demo/`: built-in sample micro app source used to validate library behavior
+- `lib/`: npm package output directory
 
-## 库构建
+## Library Build
 
-安装依赖：
+Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-构建 npm 库
+Build the npm library:
 
 ```bash
 pnpm build
 ```
 
-检查 npm 打包内容：
+Inspect the npm package contents:
 
 ```bash
 pnpm pack --dry-run
 ```
 
-## 对外接口表
+## Public API Table
 
-| 导出名 | 类型 | 用途 | 备注 |
+| Export | Type | Purpose | Notes |
 | --- | --- | --- | --- |
-| `MicroPanelHub` | React 组件 | 在 React 项目中直接渲染工作台 | 需要显式引入样式 |
-| `mountMicroPanelHub` | 函数 | 在 DOM 容器上命令式挂载 | 内部仍基于 React 渲染 |
-| `getDefaultEventBus` | 函数 | 获取默认事件总线实例 | 便于宿主复用消息通道 |
-| `MicroPanelHubProps` | 类型 | 组件 props 类型 | 组件配置入口 |
-| `MicroPanelHubMountOptions` | 类型 | `mountMicroPanelHub` 参数类型 | 与 props 基本一致 |
-| `MicroPanelDefinition` | 类型 | 默认面板配置类型 | 供 `defaultPanels` 使用 |
-| `MicroAppSource` | 类型 | 子应用来源配置类型 | 支持绝对路径和相对路径 |
-| `MicroPanelHubEventBus` | 类型 | 事件总线类型 | 基于 `mitt` |
-| `@shupeixuan/micro-panel-hub/styles.css` | 样式入口 | 引入组件样式 | 推荐宿主主动导入 |
-| `@shupeixuan/micro-panel-hub/flexlayout-light.css` | 样式入口 | 引入 FlexLayout 默认主题样式 | 宿主需要单独覆写时可用 |
+| `MicroPanelHub` | React component | Renders the workspace directly inside a React app | Requires explicit style import |
+| `mountMicroPanelHub` | Function | Mounts the workspace into a DOM container imperatively | Still rendered internally with React |
+| `getDefaultEventBus` | Function | Returns the default event bus instance | Useful for sharing the message channel with the host |
+| `MicroPanelHubProps` | Type | Component props type | Main component configuration entry |
+| `MicroPanelHubMountOptions` | Type | Parameter type for `mountMicroPanelHub` | Mostly aligned with the component props |
+| `MicroPanelDefinition` | Type | Default panel definition type | Used by `defaultPanels` |
+| `MicroAppSource` | Type | Child app source configuration type | Supports absolute and relative routes |
+| `MicroPanelHubEventBus` | Type | Event bus type | Based on `mitt` |
+| `@shupeixuan/micro-panel-hub/styles.css` | Style entry | Imports the component styles | Recommended for host apps |
+| `@shupeixuan/micro-panel-hub/flexlayout-light.css` | Style entry | Imports the default FlexLayout theme styles | Useful when the host wants explicit control |
 
-## 主要配置项
+## Main Configuration Options
 
 - `title`
 - `defaultPanels`
@@ -51,17 +51,17 @@ pnpm pack --dry-run
 - `eventBus`
 - `className`
 
-运行页面演示请使用同级目录 `../demo-use-micro-panel-hub/`。
+To run the page demo, use the sibling directory `../demo-use-micro-panel-hub/`.
 
-## 作为 npm 包使用
+## Using It As An npm Package
 
-安装：
+Install:
 
 ```bash
 pnpm add @shupeixuan/micro-panel-hub react react-dom
 ```
 
-组件方式：
+Component usage:
 
 ```tsx
 import { MicroPanelHub } from "@shupeixuan/micro-panel-hub";
@@ -80,7 +80,7 @@ export function Demo() {
 }
 ```
 
-命令式挂载：
+Imperative mount usage:
 
 ```ts
 import { mountMicroPanelHub } from "@shupeixuan/micro-panel-hub";
@@ -93,60 +93,60 @@ const mounted = mountMicroPanelHub(document.getElementById("root")!, {
 mounted.unmount();
 ```
 
-## 手动打包与上传 npmjs
+## Manual Packaging And Publishing To npmjs
 
-1. 登录 npm 账号 `@shupeixuan` 对应的发布身份。
+1. Log in with the npm publishing identity for `@shupeixuan`.
 
 ```bash
 npm login
 ```
 
-2. 安装依赖并构建发布产物。
+2. Install dependencies and build the publishable output.
 
 ```bash
 pnpm install
 pnpm build:lib
 ```
 
-3. 先确认 npm 包内容。
+3. Inspect the package contents before publishing.
 
 ```bash
 pnpm pack --dry-run
 ```
 
-4. 手动发布 dev 版本。
+4. Publish a dev version manually.
 
 ```bash
 npm publish --access public
 ```
 
-5. 如果只想发布某个 nightly/dev 版本，先把根 `package.json` 版本改成目标值，例如：
+5. If you want to publish a specific nightly/dev version, update the root `package.json` version first, for example:
 
 ```text
 1.0.0-dev.20260421.01
 ```
 
-版本格式约定：
+Version format convention:
 
 ```text
 1.0.0-dev.YYYYMMDD.SEQ
 ```
 
-其中 `YYYYMMDD` 为 UTC 日期，`SEQ` 为两位序号，例如 `01`、`02`。
+Where `YYYYMMDD` is the UTC date and `SEQ` is a two-digit sequence such as `01`, `02`, and so on.
 
-## GitHub Actions Trusted Publishing 配置
+## GitHub Actions Trusted Publishing Setup
 
-在启用 nightly 自动发布前，需要先完成以下配置：
+Before enabling automatic nightly publishing, complete the following setup:
 
-1. 在 npm 包 `@shupeixuan/micro-panel-hub` 的 package settings 中添加 GitHub Trusted Publisher。
-2. GitHub 仓库需要与 npm 包页面绑定到同一个仓库路径。
-3. GitHub 侧创建 `npm` environment，供 nightly workflow 使用。
-4. 首次发布 scoped 包时确认 package visibility 为 public。
-5. nightly workflow 运行环境会使用 Node `22.14+` 和 npm `11.5.1+`，以满足 npm Trusted Publishing 的当前要求。
+1. Add a GitHub Trusted Publisher in the npm package settings for `@shupeixuan/micro-panel-hub`.
+2. Make sure the GitHub repository is connected to the same repository path shown on the npm package page.
+3. Create an `npm` environment in GitHub for the nightly workflow.
+4. Confirm that the scoped package visibility is public before the first release.
+5. The nightly workflow uses Node `22.14+` and npm `11.5.1+` to satisfy the current Trusted Publishing requirements.
 
-## 当前默认行为
+## Current Defaults
 
-- 默认标题：`Micro Panel Hub`
-- 默认示例子应用入口：`/sub-app-demo/`
-- 默认布局存储键：`micro_panel_hub_layout`
-- 默认导出布局文件名：`micro-panel-hub-layout.json`
+- Default title: `Micro Panel Hub`
+- Default sample child app route: `/sub-app-demo/`
+- Default layout storage key: `micro_panel_hub_layout`
+- Default exported layout filename: `micro-panel-hub-layout.json`
