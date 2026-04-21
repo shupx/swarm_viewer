@@ -4,21 +4,31 @@ const ensureTrailingSlash = (value: string) => (value.endsWith('/') ? value : `$
 
 const normalizePath = (value: string) => ensureTrailingSlash(ensureLeadingSlash(value.trim() || '/'));
 
-export const getBasePath = () => {
-  const publicPath = process.env.PUBLIC_PATH;
-  if (publicPath && publicPath !== 'auto') {
-    return normalizePath(publicPath);
-  }
-
-  return '/';
+const looksLikeFilePath = (pathname: string) => {
+  const lastSegment = pathname.split('/').filter(Boolean).pop() ?? '';
+  return lastSegment.includes('.');
 };
 
-export const getRelativeRouteValue = (route: string) => {
+export const getBasePath = () => {
+  const { pathname } = window.location;
+
+  if (looksLikeFilePath(pathname)) {
+    return normalizePath(pathname.slice(0, pathname.lastIndexOf('/') + 1));
+  }
+
+  return normalizePath(pathname);
+};
+
+export const getRouteValue = (route: string) => {
   return normalizePath(route);
 };
 
-export const resolveRelativeRouteUrl = (route: string) => {
+export const resolveSiteRelativeRouteUrl = (route: string) => {
+  return new URL(getRouteValue(route), window.location.origin).toString();
+};
+
+export const resolvePageRelativeRouteUrl = (route: string) => {
   const baseUrl = `${window.location.origin}${getBasePath()}`;
-  const routePath = getRelativeRouteValue(route).replace(/^\/+/, '');
+  const routePath = getRouteValue(route).replace(/^\/+/, '');
   return new URL(routePath, baseUrl).toString();
 };

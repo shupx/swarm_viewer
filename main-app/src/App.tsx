@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { FlexWorkspace } from './components/FlexWorkspace';
 import { eventBus } from './utils/bus';
-import { getRelativeRouteValue } from './utils/path';
+import { getRouteValue, resolvePageRelativeRouteUrl } from './utils/path';
 import './App.css';
 
-type CustomSourceMode = 'absolute-url' | 'relative-route';
+type CustomSourceMode = 'absolute-url' | 'site-relative-route' | 'page-relative-route';
 
 const DEFAULT_CUSTOM_APP_NAME = 'MyApp';
+const DEFAULT_RELATIVE_ROUTE = '/sub-app-demo/';
 const getDefaultCustomAppValue = (mode: CustomSourceMode) =>
-  mode === 'relative-route' ? getRelativeRouteValue('/sub-app-demo/') : `${window.location.origin}${getRelativeRouteValue('/sub-app-demo/')}`;
+  mode === 'absolute-url' ? resolvePageRelativeRouteUrl(DEFAULT_RELATIVE_ROUTE) : getRouteValue(DEFAULT_RELATIVE_ROUTE);
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
@@ -16,8 +17,8 @@ function App() {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customAppName, setCustomAppName] = useState(DEFAULT_CUSTOM_APP_NAME);
-  const [customAppUrl, setCustomAppUrl] = useState(getDefaultCustomAppValue('relative-route'));
-  const [customSourceMode, setCustomSourceMode] = useState<CustomSourceMode>('relative-route');
+  const [customAppUrl, setCustomAppUrl] = useState(getDefaultCustomAppValue('page-relative-route'));
+  const [customSourceMode, setCustomSourceMode] = useState<CustomSourceMode>('page-relative-route');
 
   // Listen to bus messages
   useEffect(() => {
@@ -34,8 +35,8 @@ function App() {
     eventBus.emit('add-panel', {
       name: 'sub-app-demo',
       source: {
-        type: 'relative-route',
-        value: getRelativeRouteValue('/sub-app-demo/'),
+        type: 'page-relative-route',
+        value: getRouteValue(DEFAULT_RELATIVE_ROUTE),
       },
     });
     setShowAddMenu(false);
@@ -52,13 +53,13 @@ function App() {
       });
       setShowCustomModal(false);
       setCustomAppName(DEFAULT_CUSTOM_APP_NAME);
-      setCustomAppUrl(getDefaultCustomAppValue('relative-route'));
-      setCustomSourceMode('relative-route');
+      setCustomAppUrl(getDefaultCustomAppValue('page-relative-route'));
+      setCustomSourceMode('page-relative-route');
     }
   };
 
   const openCustomModal = () => {
-    const defaultMode: CustomSourceMode = 'relative-route';
+    const defaultMode: CustomSourceMode = 'page-relative-route';
     setCustomAppName(DEFAULT_CUSTOM_APP_NAME);
     setCustomSourceMode(defaultMode);
     setCustomAppUrl(getDefaultCustomAppValue(defaultMode));
@@ -161,10 +162,19 @@ function App() {
                 <input
                   type="radio"
                   name="custom-source-mode"
-                  checked={customSourceMode === 'relative-route'}
-                  onChange={() => handleCustomSourceModeChange('relative-route')}
+                  checked={customSourceMode === 'site-relative-route'}
+                  onChange={() => handleCustomSourceModeChange('site-relative-route')}
                 />
-                Relative Route
+                Site Relative
+              </label>
+              <label className="source-mode-option">
+                <input
+                  type="radio"
+                  name="custom-source-mode"
+                  checked={customSourceMode === 'page-relative-route'}
+                  onChange={() => handleCustomSourceModeChange('page-relative-route')}
+                />
+                Page Relative
               </label>
             </div>
             <div className="form-group">

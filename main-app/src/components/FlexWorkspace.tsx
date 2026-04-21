@@ -3,11 +3,12 @@ import { Layout, Model, TabNode, Actions, DockLocation, TabSetNode, Node } from 
 import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
 import { eventBus } from '../utils/bus';
-import { resolveRelativeRouteUrl } from '../utils/path';
+import { resolvePageRelativeRouteUrl, resolveSiteRelativeRouteUrl } from '../utils/path';
 
 type MicroAppSource =
   | { type: 'absolute-url'; value: string }
-  | { type: 'relative-route'; value: string };
+  | { type: 'site-relative-route'; value: string }
+  | { type: 'page-relative-route'; value: string };
 
 interface MicroAppConfig {
   name: string;
@@ -98,8 +99,12 @@ const normalizeAbsoluteUrl = (value: string) => {
 };
 
 const resolveEntryFromSource = (source: MicroAppSource) => {
-  if (source.type === 'relative-route') {
-    return resolveRelativeRouteUrl(normalizeRelativeRoute(source.value));
+  if (source.type === 'site-relative-route') {
+    return resolveSiteRelativeRouteUrl(normalizeRelativeRoute(source.value));
+  }
+
+  if (source.type === 'page-relative-route') {
+    return resolvePageRelativeRouteUrl(normalizeRelativeRoute(source.value));
   }
 
   return normalizeAbsoluteUrl(source.value);
@@ -108,9 +113,9 @@ const resolveEntryFromSource = (source: MicroAppSource) => {
 const normalizeConfig = (config: MicroAppConfig): MicroAppConfig => {
   if (config.source) {
     const normalizedSource =
-      config.source.type === 'relative-route'
-        ? { type: 'relative-route' as const, value: normalizeRelativeRoute(config.source.value) }
-        : { type: 'absolute-url' as const, value: normalizeAbsoluteUrl(config.source.value) };
+      config.source.type === 'absolute-url'
+        ? { type: 'absolute-url' as const, value: normalizeAbsoluteUrl(config.source.value) }
+        : { type: config.source.type, value: normalizeRelativeRoute(config.source.value) };
 
     return {
       ...config,
