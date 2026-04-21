@@ -40,8 +40,8 @@ This demo uses the local dependency `file:../micro-panel-hub` to show how a real
 
 Inside `.github/workflows/`:
 
-- `deploy-pages.yml`: builds and deploys `demo-use-micro-panel-hub/` to GitHub Pages
-- `nightly-build.yml`: builds the `micro-panel-hub` npm package, publishes it to npmjs, and updates the nightly release flow
+- `deploy-pages.yml`: builds and deploys `demo-use-micro-panel-hub/` to GitHub Pages (triggered by pushes to `main`)
+- `nightly-build.yml`: builds the `micro-panel-hub` npm package, publishes it to npmjs, and updates the nightly release flow (triggered every night at 2:00 AM and build if there are changes since the last build)
 
 ## Development
 
