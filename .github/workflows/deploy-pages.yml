@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -56,6 +56,23 @@ jobs:
         env:
           PUBLIC_PATH: /${{ github.event.repository.name }}/
 
+      - name: Package release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf release-upload
+          mkdir -p release-upload
+          tar -czf release-upload/swarm-viewer-dist-latest.tar.gz -C dist .
+
+      - name: Upload release asset artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swarm-viewer-release-asset
+          path: release-upload/swarm-viewer-dist-latest.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -71,3 +88,71 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  release:
+    name: Publish latest release asset
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release asset artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: swarm-viewer-release-asset
+          path: release-upload
+
+      - name: Show release asset list
+        shell: bash
+        run: find release-upload -type f | sort
+
+      - name: Move latest tag to current commit
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ github.sha }}
+        with:
+          script: |
+            try {
+              await github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'tags/latest',
+                sha: process.env.HEAD_SHA,
+                force: true,
+              });
+              core.info(`Updated tag latest to ${process.env.HEAD_SHA}`);
+            } catch (error) {
+              if (
+                error.status === 404 ||
+                (error.status === 422 && /Reference does not exist/i.test(error.message || ''))
+              ) {
+                await github.rest.git.createRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: 'refs/tags/latest',
+                  sha: process.env.HEAD_SHA,
+                });
+                core.info(`Created tag latest at ${process.env.HEAD_SHA}`);
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Publish latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Build
+          prerelease: false
+          make_latest: true
+          target_commitish: ${{ github.sha }}
+          body: |
+            Automated latest build for commit `${{ github.sha }}`.
+
+            This release contains the GitHub Pages `dist/` artifact as a downloadable archive.
+          files: |
+            release-upload/swarm-viewer-dist-latest.tar.gz
+          overwrite_files: true
