@@ -3,8 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "webpack serve --mode development",
-    "build": "webpack --mode production"
+    "build:lib": "pnpm --dir ../micro-panel-hub build",
+    "dev": "pnpm run build:lib && webpack serve --mode development",
+    "build": "pnpm run build:lib && webpack --mode production"
   },
   "dependencies": {
     "@shupeixuan/micro-panel-hub": "file:../micro-panel-hub",

@@ -9,7 +9,7 @@ function DemoApp() {
       <MicroPanelHub
         title="Demo Use Micro Panel Hub"
         defaultCustomAppName="Local Demo App"
-        defaultRelativeRoute="/sub-app-demo/"
+        defaultPanels={[]}
         storageKey="demo_use_micro_panel_hub_layout"
       />
     </div>

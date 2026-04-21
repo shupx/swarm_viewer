@@ -29,9 +29,7 @@
     "README.md"
   ],
   "scripts": {
-    "dev": "./start.sh",
-    "build": "pnpm run build:site && pnpm run build:lib",
-    "build:site": "pnpm --filter sub-app-demo build && pnpm --filter main-app build",
+    "build": "pnpm run build:lib",
     "build:lib": "pnpm exec tsup --config tsup.config.ts && mkdir -p lib && cp main-app/src/index.css lib/styles.css && cp node_modules/flexlayout-react/style/light.css lib/flexlayout-light.css",
     "lint": "pnpm --filter main-app lint && pnpm --filter sub-app-demo lint",
     "pack:check": "pnpm pack --dry-run"

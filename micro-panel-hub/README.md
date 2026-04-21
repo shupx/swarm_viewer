@@ -1,21 +1,12 @@
-# Micro Panel Hub
-
-Micro Panel Hub 是一个基于 `qiankun` 和 `flexlayout-react` 构建的微前端工作台容器。它既可以作为当前仓库里的独立站点运行，也可以作为 npm 包 `@shupeixuan/micro-panel-hub` 被其他 React 项目嵌入使用。
-
-在线预览：`https://shupx.github.io/micro-panel-hub/`
-
-最新构建归档：`https://github.com/shupx/micro-panel-hub/releases/tag/latest`
-
-![Micro Panel Hub screenshot](misc/main.png)
+# micro-panel-hub构建
 
 ## 项目结构
 
-- `main-app/`: 主应用与可发布库入口的源码
-- `sub-app-demo/`: 示例微应用，用于本地开发和演示
+- `main-app/`: 库入口与内部 UI 逻辑源码
+- `sub-app-demo/`: 仓库内置的示例微应用源码，用于库能力验证
 - `lib/`: npm 包发布产物目录
-- `dist/`: 站点构建产物目录
 
-## 本地开发
+## 库构建
 
 安装依赖：
 
@@ -23,25 +14,13 @@ Micro Panel Hub 是一个基于 `qiankun` 和 `flexlayout-react` 构建的微前
 pnpm install
 ```
 
-启动主应用和示例子应用：
-
-```bash
-pnpm dev
-```
-
-构建站点与 npm 库：
+构建 npm 库
 
 ```bash
 pnpm build
 ```
 
-只构建 npm 库：
-
-```bash
-pnpm build:lib
-```
-
-只检查 npm 打包内容：
+检查 npm 打包内容：
 
 ```bash
 pnpm pack --dry-run
@@ -71,6 +50,8 @@ pnpm pack --dry-run
 - `storageKey`
 - `eventBus`
 - `className`
+
+运行页面演示请使用同级目录 `../demo-use-micro-panel-hub/`。
 
 ## 作为 npm 包使用
 
