@@ -3,6 +3,7 @@ import { Layout, Model, TabNode, Actions, DockLocation, TabSetNode, Node } from 
 import 'flexlayout-react/style/light.css';
 import { MicroAppRenderer } from './MicroAppRenderer';
 import { eventBus } from '../utils/bus';
+import { resolveRelativeRouteUrl } from '../utils/path';
 
 type MicroAppSource =
   | { type: 'absolute-url'; value: string }
@@ -98,7 +99,7 @@ const normalizeAbsoluteUrl = (value: string) => {
 
 const resolveEntryFromSource = (source: MicroAppSource) => {
   if (source.type === 'relative-route') {
-    return new URL(normalizeRelativeRoute(source.value), window.location.origin).toString();
+    return resolveRelativeRouteUrl(normalizeRelativeRoute(source.value));
   }
 
   return normalizeAbsoluteUrl(source.value);

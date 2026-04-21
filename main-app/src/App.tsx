@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { FlexWorkspace } from './components/FlexWorkspace';
 import { eventBus } from './utils/bus';
+import { getRelativeRouteValue } from './utils/path';
 import './App.css';
 
 type CustomSourceMode = 'absolute-url' | 'relative-route';
 
 const DEFAULT_CUSTOM_APP_NAME = 'MyApp';
 const getDefaultCustomAppValue = (mode: CustomSourceMode) =>
-  mode === 'relative-route' ? '/sub-app-demo/' : `${window.location.origin}/sub-app-demo/`;
+  mode === 'relative-route' ? getRelativeRouteValue('/sub-app-demo/') : `${window.location.origin}${getRelativeRouteValue('/sub-app-demo/')}`;
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
@@ -34,7 +35,7 @@ function App() {
       name: 'sub-app-demo',
       source: {
         type: 'relative-route',
-        value: '/sub-app-demo/',
+        value: getRelativeRouteValue('/sub-app-demo/'),
       },
     });
     setShowAddMenu(false);

@@ -1,16 +1,18 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (_env, argv = {}) => {
   const port = Number(process.env.PORT || argv.port) || 5173;
+  const publicPath = process.env.PUBLIC_PATH || '/';
 
   return {
     entry: './src/main.tsx',
     output: {
       path: path.resolve(__dirname, '../dist'),
       filename: '[name].[contenthash].js',
-      publicPath: '/',
+      publicPath,
       
     },
     resolve: {
@@ -39,6 +41,9 @@ module.exports = (_env, argv = {}) => {
       ]
     },
     plugins: [
+      new webpack.DefinePlugin({
+        'process.env.PUBLIC_PATH': JSON.stringify(publicPath),
+      }),
       new HtmlWebpackPlugin({
         template: './index.html',
       }),
