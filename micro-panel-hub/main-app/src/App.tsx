@@ -31,6 +31,7 @@ function App(props: MicroPanelHubProps) {
   );
   const [customSourceMode, setCustomSourceMode] =
     useState<CustomSourceMode>("page-relative-route");
+  const defaultPanel = defaultPanels[0];
 
   useEffect(() => {
     const handler = (msg: unknown) => {
@@ -45,7 +46,6 @@ function App(props: MicroPanelHubProps) {
   }, [eventBus]);
 
   const loadDefaultPanel = () => {
-    const defaultPanel = defaultPanels[0];
     if (!defaultPanel) return;
 
     eventBus.emit("add-panel", {
@@ -123,10 +123,12 @@ function App(props: MicroPanelHubProps) {
             Add
             {showAddMenu && (
               <div className="dropdown-menu">
-                <div className="dropdown-item" onClick={loadDefaultPanel}>Demo Sub App</div>
+                {defaultPanel && (
+                  <div className="dropdown-item" onClick={loadDefaultPanel}>{defaultPanel.name}</div>
+                )}
                 <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
-                <div className="dropdown-divider"></div>
-                <div className="dropdown-item disabled">Recent...</div>
+                {defaultPanel && <div className="dropdown-divider"></div>}
+                {defaultPanel && <div className="dropdown-item disabled">Recent...</div>}
               </div>
             )}
           </div>

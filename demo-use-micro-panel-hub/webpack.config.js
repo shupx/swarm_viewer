@@ -41,6 +41,14 @@ module.exports = {
   ],
   devServer: {
     port: 5188,
+    static: {
+      directory: path.resolve(
+        __dirname,
+        "node_modules/@shupeixuan/micro-panel-hub/lib",
+      ),
+      publicPath: "/",
+      watch: true,
+    },
     historyApiFallback: true,
   },
 };

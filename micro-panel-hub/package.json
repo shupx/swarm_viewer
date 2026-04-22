@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build": "pnpm run build:lib",
-    "build:lib": "pnpm exec tsup --config tsup.config.ts && cat main-app/src/index.css main-app/src/App.css > lib/styles.css && cp node_modules/flexlayout-react/style/light.css lib/flexlayout-light.css",
+    "build:lib": "pnpm exec tsup --config tsup.config.ts && cat main-app/src/index.css main-app/src/App.css > lib/styles.css && cp node_modules/flexlayout-react/style/light.css lib/flexlayout-light.css && pnpm --filter sub-app-demo build && mkdir -p lib/sub-app-demo && cp -R dist/sub-app-demo/. lib/sub-app-demo/",
     "lint": "pnpm --filter main-app lint && pnpm --filter sub-app-demo lint",
     "pack:check": "pnpm pack --dry-run"
   },

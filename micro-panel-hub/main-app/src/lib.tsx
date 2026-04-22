@@ -10,4 +10,4 @@ export type {
   MicroPanelHubProps,
 } from "./types";
 
-export { getDefaultEventBus } from "./defaults";
+export { createSubAppDemoPanel, getDefaultEventBus } from "./defaults";

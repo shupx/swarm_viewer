@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { MicroPanelHub } from "@shupeixuan/micro-panel-hub";
+import {
+  createSubAppDemoPanel,
+  MicroPanelHub,
+} from "@shupeixuan/micro-panel-hub";
 import "@shupeixuan/micro-panel-hub/styles.css";
 
 function DemoApp() {
@@ -9,7 +12,7 @@ function DemoApp() {
       <MicroPanelHub
         title="Demo Use Micro Panel Hub"
         defaultCustomAppName="Local Demo App"
-        defaultPanels={[]}
+        defaultPanels={[createSubAppDemoPanel()]}
         storageKey="demo_use_micro_panel_hub_layout"
       />
     </div>

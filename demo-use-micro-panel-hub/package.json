@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "scripts": {
     "build:lib": "pnpm --dir ../micro-panel-hub build",
+    "copy:sub-app": "mkdir -p dist/sub-app-demo && cp -R node_modules/@shupeixuan/micro-panel-hub/lib/sub-app-demo/. dist/sub-app-demo/",
     "sync:lib": "pnpm install --offline",
     "dev": "pnpm run build:lib && pnpm run sync:lib && webpack serve --mode development",
-    "build": "pnpm run build:lib && pnpm run sync:lib && webpack --mode production"
+    "build": "pnpm run build:lib && pnpm run sync:lib && webpack --mode production && pnpm run copy:sub-app"
   },
   "dependencies": {
     "@shupeixuan/micro-panel-hub": "file:../micro-panel-hub",

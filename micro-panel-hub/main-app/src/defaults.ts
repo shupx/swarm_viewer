@@ -1,5 +1,6 @@
 import mitt from "mitt";
 import type {
+  CustomSourceMode,
   MicroPanelDefinition,
   MicroPanelHubEventBus,
   MicroPanelHubProps,
@@ -11,15 +12,25 @@ export const DEFAULT_RELATIVE_ROUTE = "/sub-app-demo/";
 export const DEFAULT_STORAGE_KEY = "micro_panel_hub_layout";
 export const DEFAULT_LAYOUT_DOWNLOAD_NAME = "micro-panel-hub-layout.json";
 
-export const DEFAULT_PANELS: MicroPanelDefinition[] = [
-  {
-    name: "sub-app-demo",
-    source: {
-      type: "page-relative-route",
-      value: DEFAULT_RELATIVE_ROUTE,
-    },
+export const DEFAULT_PANELS: MicroPanelDefinition[] = [];
+
+export interface SubAppDemoPanelOptions {
+  name?: string;
+  route?: string;
+  sourceMode?: CustomSourceMode;
+}
+
+export const createSubAppDemoPanel = ({
+  name = "sub-app-demo",
+  route = DEFAULT_RELATIVE_ROUTE,
+  sourceMode = "page-relative-route",
+}: SubAppDemoPanelOptions = {}): MicroPanelDefinition => ({
+  name,
+  source: {
+    type: sourceMode,
+    value: route,
   },
-];
+});
 
 const sharedEventBus = mitt<Record<string, unknown>>();
 
