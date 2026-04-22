@@ -186,15 +186,14 @@ mounted.unmount();
 
 
 
-## GitHub Actions Trusted Publishing Setup
+## GitHub Actions npm Token Setup
 
 Before enabling automatic nightly publishing, complete the following setup:
 
-1. Add a GitHub Trusted Publisher in the npm package settings for `@shupeixuan/micro-panel-hub`.
-2. Make sure the GitHub repository is connected to the same repository path shown on the npm package page.
-3. Create an `npm` environment in GitHub for the nightly workflow.
-4. Confirm that the scoped package visibility is public before the first release.
-5. The nightly workflow uses Node `22.14+` and npm `11.5.1+` to satisfy the current Trusted Publishing requirements.
+1. Create an npm access token for the `@shupeixuan` publishing account with publish permission.
+2. Add the token to the GitHub repository or `npm` environment as the secret `NPM_TOKEN`.
+3. Confirm that the scoped package visibility is public before the first release.
+4. The nightly workflow publishes with `npm publish --access public --tag dev` using `NODE_AUTH_TOKEN`.
 
 ## Current Defaults
 

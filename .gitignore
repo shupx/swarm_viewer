@@ -15,6 +15,7 @@ dist-ssr
 /micro-panel-hub/node_modules
 /micro-panel-hub/lib
 /micro-panel-hub/dist
+/micro-panel-hub/nightly-dist
 /demo-use-micro-panel-hub/node_modules
 /demo-use-micro-panel-hub/dist
 
