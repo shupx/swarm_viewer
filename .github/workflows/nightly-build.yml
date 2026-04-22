@@ -50,7 +50,42 @@ jobs:
           PUBLISH_NPM: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_npm }}
         run: |
           build_date="$(date -u +%Y%m%d)"
-          build_seq="$(printf '%02d' "${GITHUB_RUN_ATTEMPT}")"
+          package_name="$(node -p "require('./micro-panel-hub/package.json').name")"
+          build_seq="$(
+            PACKAGE_NAME="$package_name" BUILD_DATE="$build_date" node <<'NODE'
+            const { execFileSync } = require('child_process');
+
+            const packageName = process.env.PACKAGE_NAME;
+            const buildDate = process.env.BUILD_DATE;
+
+            let versions = [];
+            try {
+              const output = execFileSync(
+                'npm',
+                ['view', packageName, 'versions', '--json'],
+                { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+              ).trim();
+              const parsed = JSON.parse(output || '[]');
+              versions = Array.isArray(parsed) ? parsed : [parsed];
+            } catch (error) {
+              versions = [];
+            }
+
+            const versionPattern = new RegExp(
+              `^\\d+\\.\\d+\\.\\d+-dev\\.${buildDate}\\.(\\d+)$`,
+            );
+
+            let maxSeq = 0;
+            for (const version of versions) {
+              const match = String(version).match(versionPattern);
+              if (match) {
+                maxSeq = Math.max(maxSeq, Number(match[1]));
+              }
+            }
+
+            process.stdout.write(String(maxSeq + 1).padStart(2, '0'));
+            NODE
+          )"
           nightly_version="1.0.0-dev.${build_date}.${build_seq}"
           echo "build_date=${build_date}" >> "$GITHUB_OUTPUT"
           echo "build_seq=${build_seq}" >> "$GITHUB_OUTPUT"

@@ -172,7 +172,7 @@ mounted.unmount();
     ```text
     1.0.0-dev.YYYYMMDD.SEQ
     ```
-    Where `YYYYMMDD` is the UTC date and `SEQ` is a two-digit sequence such as `01`, `02`, and so on.
+    Where `YYYYMMDD` is the UTC date and `SEQ` is the zero-padded daily sequence for that UTC date, derived from the highest already-published npm dev version for the same day.
 
 5. Publish a dev version manually.
 
