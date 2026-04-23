@@ -10,7 +10,7 @@ import {
 } from "flexlayout-react";
 import "flexlayout-react/style/light.css";
 import { MicroAppRenderer } from "./MicroAppRenderer";
-import { resolvePageRelativeRouteUrl, resolveSiteRelativeRouteUrl } from "../utils/path";
+import { normalizePanelDefinition } from "../utils/panels";
 
 import type { MicroAppSource, MicroPanelHubEventBus } from "../types";
 
@@ -77,70 +77,8 @@ const createDefaultConfig = (title: string) => ({
   },
 });
 
-const normalizeRelativeRoute = (value: string) => {
-  if (!value) return '/';
-  let normalized = value.trim();
-  if (!normalized.startsWith('/')) {
-    normalized = `/${normalized}`;
-  }
-
-  const lastSegment = normalized.split('/').filter(Boolean).pop() ?? '';
-  const looksLikeFile = lastSegment.includes('.');
-  if (!normalized.endsWith('/') && !looksLikeFile) {
-    normalized = `${normalized}/`;
-  }
-
-  return normalized;
-};
-
-const normalizeAbsoluteUrl = (value: string) => {
-  const normalizedUrl = new URL(value);
-  const pathname = normalizedUrl.pathname;
-  const lastSegment = pathname.split('/').filter(Boolean).pop() ?? '';
-  const looksLikeFile = lastSegment.includes('.');
-
-  if (!pathname.endsWith('/') && !looksLikeFile) {
-    normalizedUrl.pathname = `${pathname}/`;
-  }
-
-  return normalizedUrl.toString();
-};
-
-const resolveEntryFromSource = (source: MicroAppSource) => {
-  if (source.type === 'site-relative-route') {
-    return resolveSiteRelativeRouteUrl(normalizeRelativeRoute(source.value));
-  }
-
-  if (source.type === 'page-relative-route') {
-    return resolvePageRelativeRouteUrl(normalizeRelativeRoute(source.value));
-  }
-
-  return normalizeAbsoluteUrl(source.value);
-};
-
 const normalizeConfig = (config: MicroAppConfig): MicroAppConfig => {
-  if (config.source) {
-    const normalizedSource =
-      config.source.type === 'absolute-url'
-        ? { type: 'absolute-url' as const, value: normalizeAbsoluteUrl(config.source.value) }
-        : { type: config.source.type, value: normalizeRelativeRoute(config.source.value) };
-
-    return {
-      ...config,
-      source: normalizedSource,
-      entry: resolveEntryFromSource(normalizedSource),
-    };
-  }
-
-  if (config.entry) {
-    return {
-      ...config,
-      source: { type: 'absolute-url', value: normalizeAbsoluteUrl(config.entry) },
-      entry: normalizeAbsoluteUrl(config.entry),
-    };
-  }
-
-  return config;
+  return normalizePanelDefinition(config);
 };
 
 const normalizeLayoutJson = (config: LayoutJsonConfig) => {
@@ -196,7 +134,13 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
       }
     });
 
-    const config = normalizeConfig({ name, source, entry });
+    let config: MicroAppConfig;
+    try {
+      config = normalizeConfig({ name, source, entry });
+    } catch (error) {
+      console.error("Failed to normalize panel config", error);
+      return;
+    }
 
     model.doAction(
       Actions.addNode(
@@ -270,7 +214,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
       return (
         <div style={{ padding: 40, height: '100%', boxSizing: 'border-box', background: '#f8f9fa' }}>
           <h2 style={{margin:0, color:'#2c3e50'}}>{title}</h2>
-          <p style={{color:'#7f8c8d', marginTop: 12}}>The workspace is empty. Click "Add Demo Sub App" from the top menu to start building your layout.</p>
+          <p style={{color:'#7f8c8d', marginTop: 12}}>The workspace is empty. Open the Add menu to start building your layout.</p>
           <p style={{color:'#7f8c8d'}}>You can drag the tabs above to re-arrange, split screens, or dock to edges.</p>
         </div>
       );

@@ -41,6 +41,7 @@ pnpm pack --dry-run
 | `MicroPanelHubProps` | Type | Component props type | Main component configuration entry |
 | `MicroPanelHubMountOptions` | Type | Parameter type for `mountMicroPanelHub` | Mostly aligned with the component props |
 | `MicroPanelDefinition` | Type | Default panel definition type | Used by `defaultPanels` |
+| `MicroPanelAddMenuOptions` | Type | Add menu configuration type | Controls preset items, custom app, and recent history |
 | `MicroAppSource` | Type | Child app source configuration type | Supports absolute and relative routes |
 | `MicroPanelHubEventBus` | Type | Event bus type | Based on `mitt` |
 | `@shupeixuan/micro-panel-hub/styles.css` | Style entry | Imports the component styles | Recommended for host apps |
@@ -50,6 +51,7 @@ pnpm pack --dry-run
 
 - `title`
 - `defaultPanels`
+- `addMenu`
 - `defaultCustomAppName`
 - `defaultRelativeRoute`
 - `storageKey`
@@ -81,12 +83,28 @@ export function Demo() {
       <MicroPanelHub
         title="Embedded Micro Panel Hub"
         defaultPanels={[createSubAppDemoPanel()]}
+        addMenu={{
+          panels: [
+            createSubAppDemoPanel(),
+            createSubAppDemoPanel({
+              name: "sub-app-demo (site route)",
+              sourceMode: "site-relative-route",
+            }),
+          ],
+          enableCustomApp: true,
+          enableRecent: true,
+          recentLimit: 8,
+        }}
         storageKey="embedded_micro_panel_hub_layout"
       />
     </div>
   );
 }
 ```
+
+`addMenu.panels` overrides `defaultPanels` when both are provided. This lets hosts keep backward compatibility while moving to the more explicit Add menu API.
+
+Recent history is stored in `localStorage` under `${storageKey}__recent_panels`. It records panels opened from the Add menu, including custom URLs, deduplicates by normalized source, and keeps the newest entries first.
 
 ## Optional Packaged Demo Micro App
 
@@ -202,3 +220,4 @@ Before enabling automatic nightly publishing, complete the following setup:
 - Default custom app route placeholder: `/sub-app-demo/`
 - Default layout storage key: `micro_panel_hub_layout`
 - Default exported layout filename: `micro-panel-hub-layout.json`
+- Default Add menu settings: `enableCustomApp = true`, `enableRecent = true`, `recentLimit = 8`

@@ -3,6 +3,7 @@ export { MicroPanelHub, mountMicroPanelHub } from "./mount";
 export type {
   CustomSourceMode,
   MicroAppSource,
+  MicroPanelAddMenuOptions,
   MicroPanelDefinition,
   MicroPanelHubEventBus,
   MicroPanelHubEvents,

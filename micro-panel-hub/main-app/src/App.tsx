@@ -1,37 +1,90 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FlexWorkspace } from "./components/FlexWorkspace";
 import { resolveHubProps } from "./defaults";
 import { getRouteValue, resolvePageRelativeRouteUrl } from "./utils/path";
+import { getPanelDefinitionIdentity, normalizePanelDefinition } from "./utils/panels";
 import "./App.css";
 
-import type { CustomSourceMode, MicroPanelHubProps } from "./types";
+import type {
+  CustomSourceMode,
+  MicroPanelDefinition,
+  MicroPanelHubProps,
+} from "./types";
 
 const getDefaultCustomAppValue = (mode: CustomSourceMode, defaultRelativeRoute: string) =>
   mode === "absolute-url"
     ? resolvePageRelativeRouteUrl(defaultRelativeRoute)
     : getRouteValue(defaultRelativeRoute);
 
+const getRecentStorageKey = (storageKey: string) => `${storageKey}__recent_panels`;
+
+const sanitizeRecentPanels = (
+  panels: unknown,
+  limit: number,
+): MicroPanelDefinition[] => {
+  if (limit <= 0) return [];
+  if (!Array.isArray(panels)) return [];
+
+  const normalizedPanels: MicroPanelDefinition[] = [];
+  const seen = new Set<string>();
+
+  for (const panel of panels) {
+    if (!panel || typeof panel !== "object") continue;
+
+    try {
+      const normalized = normalizePanelDefinition(panel as MicroPanelDefinition);
+      const identity = getPanelDefinitionIdentity(normalized);
+      if (seen.has(identity)) continue;
+      seen.add(identity);
+      normalizedPanels.push(normalized);
+    } catch (error) {
+      console.error("Skipping invalid recent panel entry", error);
+    }
+
+    if (normalizedPanels.length >= limit) {
+      break;
+    }
+  }
+
+  return normalizedPanels;
+};
+
+const loadRecentPanels = (storageKey: string, limit: number) => {
+  try {
+    const savedRecentPanels = localStorage.getItem(storageKey);
+    const parsedPanels = savedRecentPanels ? JSON.parse(savedRecentPanels) : [];
+    return sanitizeRecentPanels(parsedPanels, limit);
+  } catch (error) {
+    console.error("Failed to load recent panels", error);
+    return [];
+  }
+};
+
 function App(props: MicroPanelHubProps) {
   const {
     title,
-    defaultPanels,
+    addMenu,
     defaultCustomAppName,
     defaultRelativeRoute,
     storageKey,
     eventBus,
     className,
   } = resolveHubProps(props);
+  const recentStorageKey = getRecentStorageKey(storageKey);
   const [messages, setMessages] = useState<string[]>([]);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [showRecentModal, setShowRecentModal] = useState(false);
   const [customAppName, setCustomAppName] = useState(defaultCustomAppName);
   const [customAppUrl, setCustomAppUrl] = useState(
     getDefaultCustomAppValue("page-relative-route", defaultRelativeRoute),
   );
   const [customSourceMode, setCustomSourceMode] =
     useState<CustomSourceMode>("page-relative-route");
-  const defaultPanel = defaultPanels[0];
+  const [recentPanels, setRecentPanels] = useState<MicroPanelDefinition[]>(() =>
+    loadRecentPanels(recentStorageKey, addMenu.recentLimit),
+  );
 
   useEffect(() => {
     const handler = (msg: unknown) => {
@@ -45,26 +98,51 @@ function App(props: MicroPanelHubProps) {
     };
   }, [eventBus]);
 
-  const loadDefaultPanel = () => {
-    if (!defaultPanel) return;
+  const persistRecentPanels = (panels: MicroPanelDefinition[]) => {
+    try {
+      localStorage.setItem(recentStorageKey, JSON.stringify(panels));
+    } catch (error) {
+      console.error("Failed to save recent panels", error);
+    }
+  };
 
-    eventBus.emit("add-panel", {
-      name: defaultPanel.name,
-      source: defaultPanel.source,
-      entry: defaultPanel.entry,
+  const updateRecentPanels = (panel: MicroPanelDefinition) => {
+    setRecentPanels((prev) => {
+      const nextPanels = sanitizeRecentPanels([panel, ...prev], addMenu.recentLimit);
+      persistRecentPanels(nextPanels);
+      return nextPanels;
     });
+  };
+
+  const emitPanel = (panel: MicroPanelDefinition) => {
+    try {
+      const normalizedPanel = normalizePanelDefinition(panel);
+      eventBus.emit("add-panel", normalizedPanel);
+      updateRecentPanels(normalizedPanel);
+      return true;
+    } catch (error) {
+      console.error("Failed to add panel", error);
+      alert("Invalid panel configuration");
+      return false;
+    }
+  };
+
+  const loadPanel = (panel: MicroPanelDefinition) => {
+    if (!emitPanel(panel)) return;
     setShowAddMenu(false);
+    setShowRecentModal(false);
   };
 
   const loadCustomApp = () => {
-    if (customAppName && customAppUrl) {
-      eventBus.emit("add-panel", {
+    if (customAppName.trim() && customAppUrl.trim()) {
+      const added = emitPanel({
         name: customAppName,
         source: {
           type: customSourceMode,
           value: customAppUrl.trim(),
         },
       });
+      if (!added) return;
       setShowCustomModal(false);
       setCustomAppName(defaultCustomAppName);
       setCustomAppUrl(getDefaultCustomAppValue("page-relative-route", defaultRelativeRoute));
@@ -79,6 +157,17 @@ function App(props: MicroPanelHubProps) {
     setCustomAppUrl(getDefaultCustomAppValue(defaultMode, defaultRelativeRoute));
     setShowCustomModal(true);
     setShowAddMenu(false);
+  };
+
+  const openRecentModal = () => {
+    if (recentPanels.length === 0) return;
+    setShowRecentModal(true);
+    setShowAddMenu(false);
+  };
+
+  const clearRecentPanels = () => {
+    setRecentPanels([]);
+    persistRecentPanels([]);
   };
 
   const handleCustomSourceModeChange = (mode: CustomSourceMode) => {
@@ -109,6 +198,10 @@ function App(props: MicroPanelHubProps) {
     e.target.value = '';
   };
 
+  const shouldShowPresetDivider =
+    addMenu.panels.length > 0 && (addMenu.enableCustomApp || addMenu.enableRecent);
+  const isRecentDisabled = recentPanels.length === 0;
+
   return (
     <div className={`app-container ${className}`.trim()}>
       <header className="top-menu">
@@ -123,12 +216,27 @@ function App(props: MicroPanelHubProps) {
             Add
             {showAddMenu && (
               <div className="dropdown-menu">
-                {defaultPanel && (
-                  <div className="dropdown-item" onClick={loadDefaultPanel}>{defaultPanel.name}</div>
+                {addMenu.panels.map((panel, index) => (
+                  <div
+                    className="dropdown-item"
+                    key={`${panel.name}-${index}`}
+                    onClick={() => loadPanel(panel)}
+                  >
+                    {panel.name}
+                  </div>
+                ))}
+                {shouldShowPresetDivider && <div className="dropdown-divider"></div>}
+                {addMenu.enableCustomApp && (
+                  <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
                 )}
-                <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
-                {defaultPanel && <div className="dropdown-divider"></div>}
-                {defaultPanel && <div className="dropdown-item disabled">Recent...</div>}
+                {addMenu.enableRecent && (
+                  <div
+                    className={`dropdown-item${isRecentDisabled ? " disabled" : ""}`}
+                    onClick={isRecentDisabled ? undefined : openRecentModal}
+                  >
+                    Recent...
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -207,6 +315,31 @@ function App(props: MicroPanelHubProps) {
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowCustomModal(false)}>Cancel</button>
               <button className="btn-primary" onClick={loadCustomApp}>Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRecentModal && (
+        <div className="modal-overlay">
+          <div className="modal-content recent-modal">
+            <h3>Recent Panels</h3>
+            <p className="modal-description">Recently opened items for this workspace.</p>
+            <div className="recent-list">
+              {recentPanels.map((panel) => (
+                <button
+                  className="recent-item"
+                  key={getPanelDefinitionIdentity(panel)}
+                  onClick={() => loadPanel(panel)}
+                >
+                  <span className="recent-item-name">{panel.name}</span>
+                  <span className="recent-item-source">{panel.source?.value ?? panel.entry ?? "No source"}</span>
+                </button>
+              ))}
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={clearRecentPanels}>Clear History</button>
+              <button className="btn-secondary" onClick={() => setShowRecentModal(false)}>Close</button>
             </div>
           </div>
         </div>

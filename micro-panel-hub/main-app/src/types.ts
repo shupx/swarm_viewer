@@ -20,9 +20,17 @@ export interface MicroPanelDefinition {
   entry?: string;
 }
 
+export interface MicroPanelAddMenuOptions {
+  panels?: MicroPanelDefinition[];
+  enableCustomApp?: boolean;
+  enableRecent?: boolean;
+  recentLimit?: number;
+}
+
 export interface MicroPanelHubProps {
   title?: string;
   defaultPanels?: MicroPanelDefinition[];
+  addMenu?: MicroPanelAddMenuOptions;
   defaultCustomAppName?: string;
   defaultRelativeRoute?: string;
   storageKey?: string;

@@ -13,6 +13,18 @@ function DemoApp() {
         title="Demo Use Micro Panel Hub"
         defaultCustomAppName="Local Demo App"
         defaultPanels={[createSubAppDemoPanel()]}
+        addMenu={{
+          panels: [
+            createSubAppDemoPanel(),
+            createSubAppDemoPanel({
+              name: "sub-app-demo (site route)",
+              sourceMode: "site-relative-route",
+            }),
+          ],
+          enableCustomApp: true,
+          enableRecent: true,
+          recentLimit: 8,
+        }}
         storageKey="demo_use_micro_panel_hub_layout"
       />
     </div>
