@@ -75,7 +75,6 @@ function App(props: MicroPanelHubProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [showRecentModal, setShowRecentModal] = useState(false);
   const [customAppName, setCustomAppName] = useState(defaultCustomAppName);
   const [customAppUrl, setCustomAppUrl] = useState(
     getDefaultCustomAppValue("page-relative-route", defaultRelativeRoute),
@@ -130,7 +129,6 @@ function App(props: MicroPanelHubProps) {
   const loadPanel = (panel: MicroPanelDefinition) => {
     if (!emitPanel(panel)) return;
     setShowAddMenu(false);
-    setShowRecentModal(false);
   };
 
   const loadCustomApp = () => {
@@ -159,15 +157,20 @@ function App(props: MicroPanelHubProps) {
     setShowAddMenu(false);
   };
 
-  const openRecentModal = () => {
-    if (recentPanels.length === 0) return;
-    setShowRecentModal(true);
-    setShowAddMenu(false);
-  };
-
   const clearRecentPanels = () => {
     setRecentPanels([]);
     persistRecentPanels([]);
+  };
+
+  const removeRecentPanel = (panel: MicroPanelDefinition) => {
+    setRecentPanels((prev) => {
+      const targetIdentity = getPanelDefinitionIdentity(panel);
+      const nextPanels = prev.filter(
+        (recentPanel) => getPanelDefinitionIdentity(recentPanel) !== targetIdentity,
+      );
+      persistRecentPanels(nextPanels);
+      return nextPanels;
+    });
   };
 
   const handleCustomSourceModeChange = (mode: CustomSourceMode) => {
@@ -200,7 +203,9 @@ function App(props: MicroPanelHubProps) {
 
   const shouldShowPresetDivider =
     addMenu.panels.length > 0 && (addMenu.enableCustomApp || addMenu.enableRecent);
-  const isRecentDisabled = recentPanels.length === 0;
+  const shouldShowRecentSection = addMenu.enableRecent && recentPanels.length > 0;
+  const shouldShowRecentDivider =
+    shouldShowRecentSection && (addMenu.panels.length > 0 || addMenu.enableCustomApp);
 
   return (
     <div className={`app-container ${className}`.trim()}>
@@ -229,12 +234,42 @@ function App(props: MicroPanelHubProps) {
                 {addMenu.enableCustomApp && (
                   <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
                 )}
-                {addMenu.enableRecent && (
-                  <div
-                    className={`dropdown-item${isRecentDisabled ? " disabled" : ""}`}
-                    onClick={isRecentDisabled ? undefined : openRecentModal}
-                  >
-                    Recent...
+                {shouldShowRecentDivider && <div className="dropdown-divider"></div>}
+                {shouldShowRecentSection && (
+                  <div className="dropdown-section">
+                    <div className="dropdown-section-title">Recent</div>
+                    {recentPanels.map((panel) => (
+                      <div
+                        className="dropdown-recent-item"
+                        key={getPanelDefinitionIdentity(panel)}
+                        onClick={() => loadPanel(panel)}
+                      >
+                        <div className="dropdown-recent-content">
+                          <span className="dropdown-recent-name">{panel.name}</span>
+                          <span className="dropdown-recent-source">
+                            {panel.source?.value ?? panel.entry ?? "No source"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="dropdown-recent-remove"
+                          aria-label={`Remove recent panel ${panel.name}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            removeRecentPanel(panel);
+                          }}
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="dropdown-clear-action"
+                      onClick={clearRecentPanels}
+                    >
+                      Clear History
+                    </button>
                   </div>
                 )}
               </div>
@@ -315,31 +350,6 @@ function App(props: MicroPanelHubProps) {
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowCustomModal(false)}>Cancel</button>
               <button className="btn-primary" onClick={loadCustomApp}>Add</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showRecentModal && (
-        <div className="modal-overlay">
-          <div className="modal-content recent-modal">
-            <h3>Recent Panels</h3>
-            <p className="modal-description">Recently opened items for this workspace.</p>
-            <div className="recent-list">
-              {recentPanels.map((panel) => (
-                <button
-                  className="recent-item"
-                  key={getPanelDefinitionIdentity(panel)}
-                  onClick={() => loadPanel(panel)}
-                >
-                  <span className="recent-item-name">{panel.name}</span>
-                  <span className="recent-item-source">{panel.source?.value ?? panel.entry ?? "No source"}</span>
-                </button>
-              ))}
-            </div>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={clearRecentPanels}>Clear History</button>
-              <button className="btn-secondary" onClick={() => setShowRecentModal(false)}>Close</button>
             </div>
           </div>
         </div>

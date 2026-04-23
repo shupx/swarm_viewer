@@ -31,6 +31,6 @@ node_modules/@shupeixuan/micro-panel-hub/lib/sub-app-demo/
 
 - 开发时，demo 的 webpack dev server 会把包内的 `lib/sub-app-demo/` 作为静态目录一起提供
 - 生产构建时，demo 会把包内的 `lib/sub-app-demo/` 复制到 `demo-use-micro-panel-hub/dist/sub-app-demo/`
-- 示例代码同时演示了 `addMenu` API，可以在 `Add` 菜单中放多个预置项，并启用 `Recent...`
+- 示例代码同时演示了 `addMenu` API，可以在 `Add` 菜单中放多个预置项，并在下拉菜单里直接显示 recent 历史
 
 这样 `Add -> sub-app-demo` 时，页面才能真正访问到 `/sub-app-demo/` 这个入口。普通使用方如果也想使用这个示例子应用，也需要把包里的静态目录部署到自己的站点上。

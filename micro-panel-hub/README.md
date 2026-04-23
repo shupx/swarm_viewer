@@ -104,7 +104,7 @@ export function Demo() {
 
 `addMenu.panels` overrides `defaultPanels` when both are provided. This lets hosts keep backward compatibility while moving to the more explicit Add menu API.
 
-Recent history is stored in `localStorage` under `${storageKey}__recent_panels`. It records panels opened from the Add menu, including custom URLs, deduplicates by normalized source, and keeps the newest entries first.
+Recent history is stored in `localStorage` under `${storageKey}__recent_panels`. It records panels opened from the Add menu, including custom URLs, deduplicates by normalized source, and shows the newest entries inline in the Add dropdown.
 
 ## Optional Packaged Demo Micro App
 
