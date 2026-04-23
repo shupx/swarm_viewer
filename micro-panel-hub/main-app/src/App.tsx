@@ -525,8 +525,8 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
       <header className={`top-menu${shellState.topBarCollapsed ? " collapsed" : ""}`}>
         {shellState.topBarCollapsed ? (
           <div className="collapsed-top-strip">
-            <button type="button" className="top-bar-toggle" onClick={toggleTopBarCollapsed}>
-              v
+            <button type="button" className="top-bar-toggle" onClick={toggleTopBarCollapsed} title="Expand">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
           </div>
         ) : (
@@ -669,8 +669,8 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
               <div className="menu-messages">
                 {messages.length > 0 && <span className="latest-msg">{messages[messages.length - 1]}</span>}
               </div>
-              <button type="button" className="top-bar-toggle" onClick={toggleTopBarCollapsed}>
-                ^
+              <button type="button" className="top-bar-toggle" onClick={toggleTopBarCollapsed} title="Collapse">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
               </button>
             </div>
           </div>
