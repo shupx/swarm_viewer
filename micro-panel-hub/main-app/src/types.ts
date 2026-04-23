@@ -1,4 +1,5 @@
 import type { Emitter } from "mitt";
+import type { MicroPanelHubShellLayout } from "./layout-types";
 
 export type MicroPanelHubEvents = Record<string, unknown>;
 
@@ -31,6 +32,7 @@ export interface MicroPanelHubProps {
   title?: string;
   defaultPanels?: MicroPanelDefinition[];
   addMenu?: MicroPanelAddMenuOptions;
+  initialLayout?: MicroPanelHubShellLayout;
   defaultCustomAppName?: string;
   defaultRelativeRoute?: string;
   storageKey?: string;
@@ -39,3 +41,7 @@ export interface MicroPanelHubProps {
 }
 
 export type MicroPanelHubMountOptions = MicroPanelHubProps;
+
+export interface MicroPanelHubHandle {
+  exportLayout: () => MicroPanelHubShellLayout;
+}

@@ -10,28 +10,15 @@ import {
 import { normalizePanelDefinition } from "./panels";
 
 import type { MicroPanelDefinition } from "../types";
+import type {
+  MicroPanelHubLayoutJson as LayoutJsonConfig,
+  MicroPanelHubLayoutNode as LayoutNodeConfig,
+} from "../layout-types";
 
 export interface MicroAppConfig {
   name: string;
   source?: MicroPanelDefinition["source"];
   entry?: string;
-}
-
-export interface LayoutNodeConfig {
-  type?: string;
-  id?: string;
-  component?: string;
-  name?: string;
-  weight?: number;
-  enableTabStrip?: boolean;
-  config?: MicroAppConfig;
-  children?: LayoutNodeConfig[];
-}
-
-export interface LayoutJsonConfig {
-  global?: Record<string, unknown>;
-  layout?: LayoutNodeConfig;
-  borders?: LayoutNodeConfig[];
 }
 
 export const createDefaultLayoutConfig = (title: string): LayoutJsonConfig => ({

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { FlexWorkspace } from "./components/FlexWorkspace";
 import {
   DEFAULT_LAYOUT_DOWNLOAD_NAME,
@@ -16,9 +16,14 @@ import "./App.css";
 import type {
   CustomSourceMode,
   MicroPanelDefinition,
+  MicroPanelHubHandle,
   MicroPanelHubProps,
 } from "./types";
-import type { LayoutJsonConfig } from "./utils/workspace";
+import type {
+  MicroPanelHubShellLayout as ShellState,
+  MicroPanelHubWorkspaceTab as WorkspaceTabState,
+} from "./layout-types";
+import type { LayoutJsonConfig } from "./layout-types";
 
 const getDefaultCustomAppValue = (mode: CustomSourceMode, defaultRelativeRoute: string) =>
   mode === "absolute-url"
@@ -27,19 +32,6 @@ const getDefaultCustomAppValue = (mode: CustomSourceMode, defaultRelativeRoute: 
 
 const getRecentStorageKey = (storageKey: string) => `${storageKey}__recent_panels`;
 const SHELL_STATE_VERSION = 2;
-
-interface WorkspaceTabState {
-  id: string;
-  title: string;
-  layout: LayoutJsonConfig;
-}
-
-interface ShellState {
-  version: number;
-  topBarCollapsed: boolean;
-  activeTopTabId: string;
-  tabs: WorkspaceTabState[];
-}
 
 const sanitizeRecentPanels = (
   panels: unknown,
@@ -183,22 +175,31 @@ const parseShellStateValue = (value: unknown, hubTitle: string): ShellState | nu
   return null;
 };
 
-const loadShellState = (storageKey: string, hubTitle: string) => {
+const loadShellState = (
+  storageKey: string,
+  hubTitle: string,
+  initialLayout?: ShellState,
+) => {
   try {
     const saved = localStorage.getItem(storageKey);
     if (!saved) {
-      return createDefaultShellState(hubTitle);
+      return initialLayout
+        ? parseShellStateValue(initialLayout, hubTitle) ?? createDefaultShellState(hubTitle)
+        : createDefaultShellState(hubTitle);
     }
 
     const parsed = JSON.parse(saved);
     return parseShellStateValue(parsed, hubTitle) ?? createDefaultShellState(hubTitle);
   } catch (error) {
     console.error("Failed to load shell state", error);
-    return createDefaultShellState(hubTitle);
+    return initialLayout
+      ? parseShellStateValue(initialLayout, hubTitle) ?? createDefaultShellState(hubTitle)
+      : createDefaultShellState(hubTitle);
   }
 };
 
-function App(props: MicroPanelHubProps) {
+const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(props, ref) {
+  const { initialLayout } = props;
   const {
     title,
     addMenu,
@@ -211,7 +212,7 @@ function App(props: MicroPanelHubProps) {
   const recentStorageKey = getRecentStorageKey(storageKey);
   const [messages, setMessages] = useState<string[]>([]);
   const [shellState, setShellState] = useState<ShellState>(() =>
-    loadShellState(storageKey, title),
+    loadShellState(storageKey, title, initialLayout),
   );
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -249,6 +250,10 @@ function App(props: MicroPanelHubProps) {
       console.error("Failed to save shell state", error);
     }
   }, [shellState, storageKey]);
+
+  useImperativeHandle(ref, () => ({
+    exportLayout: () => shellState,
+  }), [shellState]);
 
   const persistRecentPanels = (panels: MicroPanelDefinition[]) => {
     try {
@@ -737,6 +742,6 @@ function App(props: MicroPanelHubProps) {
       </main>
     </div>
   );
-}
+});
 
 export default App;

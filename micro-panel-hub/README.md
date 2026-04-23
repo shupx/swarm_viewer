@@ -39,7 +39,9 @@ pnpm pack --dry-run
 | `getDefaultEventBus` | Function | Returns the default event bus instance | Useful for sharing the message channel with the host |
 | `createSubAppDemoPanel` | Function | Creates a panel definition for the packaged demo micro app | Host apps still need to serve the packaged static assets |
 | `MicroPanelHubProps` | Type | Component props type | Main component configuration entry |
+| `MicroPanelHubHandle` | Type | Imperative React ref handle | Supports exporting the current shell layout |
 | `MicroPanelHubMountOptions` | Type | Parameter type for `mountMicroPanelHub` | Mostly aligned with the component props |
+| `MicroPanelHubShellLayout` | Type | Full persisted shell layout shape | Used by `initialLayout` and export APIs |
 | `MicroPanelDefinition` | Type | Default panel definition type | Used by `defaultPanels` |
 | `MicroPanelAddMenuOptions` | Type | Add menu configuration type | Controls preset items, custom app, and recent history |
 | `MicroAppSource` | Type | Child app source configuration type | Supports absolute and relative routes |
@@ -52,6 +54,7 @@ pnpm pack --dry-run
 - `title`
 - `defaultPanels`
 - `addMenu`
+- `initialLayout`
 - `defaultCustomAppName`
 - `defaultRelativeRoute`
 - `storageKey`
@@ -73,14 +76,22 @@ Component usage:
 ```tsx
 import {
   createSubAppDemoPanel,
+  type MicroPanelHubHandle,
   MicroPanelHub,
 } from "@shupeixuan/micro-panel-hub";
 import "@shupeixuan/micro-panel-hub/styles.css";
+import { useRef } from "react";
 
 export function Demo() {
+  const hubRef = useRef<MicroPanelHubHandle>(null);
+
   return (
     <div style={{ height: "100vh" }}>
+      <button type="button" onClick={() => console.log(hubRef.current?.exportLayout())}>
+        Log Layout
+      </button>
       <MicroPanelHub
+        ref={hubRef}
         title="Embedded Micro Panel Hub"
         defaultPanels={[createSubAppDemoPanel()]}
         addMenu={{
@@ -103,6 +114,8 @@ export function Demo() {
 ```
 
 `addMenu.panels` overrides `defaultPanels` when both are provided. This lets hosts keep backward compatibility while moving to the more explicit Add menu API.
+
+`initialLayout` is used only when there is no saved shell state for `storageKey`. Saved data still wins on reload. Use `ref.exportLayout()` in React mode or `mountMicroPanelHub(...).exportLayout()` in imperative mode to retrieve the current full shell layout.
 
 Recent history is stored in `localStorage` under `${storageKey}__recent_panels`. It records panels opened from the Add menu, including custom URLs, deduplicates by normalized source, and shows the newest entries inline in the Add dropdown.
 
