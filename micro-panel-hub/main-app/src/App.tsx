@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { FlexWorkspace } from "./components/FlexWorkspace";
-import { resolveHubProps } from "./defaults";
+import {
+  DEFAULT_LAYOUT_DOWNLOAD_NAME,
+  resolveHubProps,
+} from "./defaults";
 import { getRouteValue, resolvePageRelativeRouteUrl } from "./utils/path";
 import { getPanelDefinitionIdentity, normalizePanelDefinition } from "./utils/panels";
+import {
+  createDefaultLayoutConfig,
+  isLayoutJsonConfig,
+  normalizeLayoutJson,
+} from "./utils/workspace";
 import "./App.css";
 
 import type {
@@ -10,6 +18,7 @@ import type {
   MicroPanelDefinition,
   MicroPanelHubProps,
 } from "./types";
+import type { LayoutJsonConfig } from "./utils/workspace";
 
 const getDefaultCustomAppValue = (mode: CustomSourceMode, defaultRelativeRoute: string) =>
   mode === "absolute-url"
@@ -17,6 +26,20 @@ const getDefaultCustomAppValue = (mode: CustomSourceMode, defaultRelativeRoute: 
     : getRouteValue(defaultRelativeRoute);
 
 const getRecentStorageKey = (storageKey: string) => `${storageKey}__recent_panels`;
+const SHELL_STATE_VERSION = 2;
+
+interface WorkspaceTabState {
+  id: string;
+  title: string;
+  layout: LayoutJsonConfig;
+}
+
+interface ShellState {
+  version: number;
+  topBarCollapsed: boolean;
+  activeTopTabId: string;
+  tabs: WorkspaceTabState[];
+}
 
 const sanitizeRecentPanels = (
   panels: unknown,
@@ -60,6 +83,121 @@ const loadRecentPanels = (storageKey: string, limit: number) => {
   }
 };
 
+const getTabNumberFromId = (id: string) => {
+  const match = /^tab-(\d+)$/.exec(id);
+  return match ? Number(match[1]) : 0;
+};
+
+const getDefaultTopTabTitle = (id: string) => `Tab ${Math.max(1, getTabNumberFromId(id) || 1)}`;
+
+const getNextTopTabId = (tabs: WorkspaceTabState[]) => {
+  const nextIndex = tabs.reduce((maxValue, tab) => Math.max(maxValue, getTabNumberFromId(tab.id)), 0) + 1;
+  return `tab-${nextIndex}`;
+};
+
+const createWorkspaceTab = (id: string, hubTitle: string, customTitle?: string): WorkspaceTabState => ({
+  id,
+  title: customTitle?.trim() || getDefaultTopTabTitle(id),
+  layout: createDefaultLayoutConfig(hubTitle),
+});
+
+const createDefaultShellState = (hubTitle: string): ShellState => {
+  const initialTab = createWorkspaceTab("tab-1", hubTitle);
+
+  return {
+    version: SHELL_STATE_VERSION,
+    topBarCollapsed: false,
+    activeTopTabId: initialTab.id,
+    tabs: [initialTab],
+  };
+};
+
+const looksLikeShellState = (value: unknown): value is Partial<ShellState> =>
+  Boolean(value && typeof value === "object" && "tabs" in value);
+
+const normalizeShellState = (value: Partial<ShellState>, hubTitle: string): ShellState => {
+  const usedIds = new Set<string>();
+  const tabs = Array.isArray(value.tabs)
+    ? value.tabs.reduce<WorkspaceTabState[]>((result, rawTab, index) => {
+        if (!rawTab || typeof rawTab !== "object") return result;
+
+        const candidateId =
+          typeof rawTab.id === "string" && rawTab.id.trim() && !usedIds.has(rawTab.id)
+            ? rawTab.id
+            : `tab-${index + 1}`;
+        usedIds.add(candidateId);
+
+        const layout =
+          isLayoutJsonConfig(rawTab.layout)
+            ? normalizeLayoutJson(rawTab.layout)
+            : createDefaultLayoutConfig(hubTitle);
+
+        result.push({
+          id: candidateId,
+          title:
+            typeof rawTab.title === "string" && rawTab.title.trim()
+              ? rawTab.title.trim()
+              : getDefaultTopTabTitle(candidateId),
+          layout,
+        });
+
+        return result;
+      }, [])
+    : [];
+
+  if (tabs.length === 0) {
+    return createDefaultShellState(hubTitle);
+  }
+
+  const activeTopTabId =
+    typeof value.activeTopTabId === "string" && tabs.some((tab) => tab.id === value.activeTopTabId)
+      ? value.activeTopTabId
+      : tabs[0].id;
+
+  return {
+    version: SHELL_STATE_VERSION,
+    topBarCollapsed: Boolean(value.topBarCollapsed),
+    activeTopTabId,
+    tabs,
+  };
+};
+
+const parseShellStateValue = (value: unknown, hubTitle: string): ShellState | null => {
+  if (looksLikeShellState(value)) {
+    return normalizeShellState(value, hubTitle);
+  }
+
+  if (isLayoutJsonConfig(value)) {
+    const baseState = createDefaultShellState(hubTitle);
+    return {
+      ...baseState,
+      tabs: [
+        {
+          ...baseState.tabs[0],
+          layout: normalizeLayoutJson(value),
+        },
+      ],
+    };
+  }
+
+  return null;
+};
+
+const loadShellState = (storageKey: string, hubTitle: string) => {
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (!saved) {
+      return createDefaultShellState(hubTitle);
+    }
+
+    const parsed = JSON.parse(saved);
+    return parseShellStateValue(parsed, hubTitle) ?? createDefaultShellState(hubTitle);
+  } catch (error) {
+    console.error("Failed to load shell state", error);
+    return createDefaultShellState(hubTitle);
+  }
+};
+
 function App(props: MicroPanelHubProps) {
   const {
     title,
@@ -72,9 +210,14 @@ function App(props: MicroPanelHubProps) {
   } = resolveHubProps(props);
   const recentStorageKey = getRecentStorageKey(storageKey);
   const [messages, setMessages] = useState<string[]>([]);
+  const [shellState, setShellState] = useState<ShellState>(() =>
+    loadShellState(storageKey, title),
+  );
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [editingTopTabId, setEditingTopTabId] = useState<string | null>(null);
+  const [editingTopTabTitle, setEditingTopTabTitle] = useState("");
   const [customAppName, setCustomAppName] = useState(defaultCustomAppName);
   const [customAppUrl, setCustomAppUrl] = useState(
     getDefaultCustomAppValue("page-relative-route", defaultRelativeRoute),
@@ -84,6 +227,8 @@ function App(props: MicroPanelHubProps) {
   const [recentPanels, setRecentPanels] = useState<MicroPanelDefinition[]>(() =>
     loadRecentPanels(recentStorageKey, addMenu.recentLimit),
   );
+  const activeTopTab =
+    shellState.tabs.find((tab) => tab.id === shellState.activeTopTabId) ?? shellState.tabs[0];
 
   useEffect(() => {
     const handler = (msg: unknown) => {
@@ -97,6 +242,14 @@ function App(props: MicroPanelHubProps) {
     };
   }, [eventBus]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(shellState));
+    } catch (error) {
+      console.error("Failed to save shell state", error);
+    }
+  }, [shellState, storageKey]);
+
   const persistRecentPanels = (panels: MicroPanelDefinition[]) => {
     try {
       localStorage.setItem(recentStorageKey, JSON.stringify(panels));
@@ -105,19 +258,10 @@ function App(props: MicroPanelHubProps) {
     }
   };
 
-  const updateRecentPanels = (panel: MicroPanelDefinition) => {
-    setRecentPanels((prev) => {
-      const nextPanels = sanitizeRecentPanels([panel, ...prev], addMenu.recentLimit);
-      persistRecentPanels(nextPanels);
-      return nextPanels;
-    });
-  };
-
   const emitPanel = (panel: MicroPanelDefinition) => {
     try {
       const normalizedPanel = normalizePanelDefinition(panel);
       eventBus.emit("add-panel", normalizedPanel);
-      updateRecentPanels(normalizedPanel);
       return true;
     } catch (error) {
       console.error("Failed to add panel", error);
@@ -178,6 +322,105 @@ function App(props: MicroPanelHubProps) {
     setCustomAppUrl(getDefaultCustomAppValue(mode, defaultRelativeRoute));
   };
 
+  const toggleTopBarCollapsed = () => {
+    setShellState((prev) => ({
+      ...prev,
+      topBarCollapsed: !prev.topBarCollapsed,
+    }));
+    setShowAddMenu(false);
+    setShowSettingsMenu(false);
+  };
+
+  const handleCreateTopTab = () => {
+    setShellState((prev) => {
+      const nextId = getNextTopTabId(prev.tabs);
+      const nextTab = createWorkspaceTab(nextId, title);
+      return {
+        ...prev,
+        activeTopTabId: nextId,
+        tabs: [...prev.tabs, nextTab],
+      };
+    });
+  };
+
+  const handleActivateTopTab = (tabId: string) => {
+    setShellState((prev) => ({
+      ...prev,
+      activeTopTabId: tabId,
+    }));
+    setEditingTopTabId(null);
+    setEditingTopTabTitle("");
+  };
+
+  const handleStartRenameTopTab = (tab: WorkspaceTabState) => {
+    setEditingTopTabId(tab.id);
+    setEditingTopTabTitle(tab.title);
+  };
+
+  const handleCommitRenameTopTab = () => {
+    if (!editingTopTabId) return;
+
+    const nextTitle = editingTopTabTitle.trim();
+    if (nextTitle) {
+      setShellState((prev) => ({
+        ...prev,
+        tabs: prev.tabs.map((tab) =>
+          tab.id === editingTopTabId
+            ? { ...tab, title: nextTitle }
+            : tab,
+        ),
+      }));
+    }
+
+    setEditingTopTabId(null);
+    setEditingTopTabTitle("");
+  };
+
+  const handleCancelRenameTopTab = () => {
+    setEditingTopTabId(null);
+    setEditingTopTabTitle("");
+  };
+
+  const handleCloseTopTab = (tabId: string) => {
+    setShellState((prev) => {
+      if (prev.tabs.length <= 1) {
+        return prev;
+      }
+
+      const closingIndex = prev.tabs.findIndex((tab) => tab.id === tabId);
+      if (closingIndex === -1) {
+        return prev;
+      }
+
+      const nextTabs = prev.tabs.filter((tab) => tab.id !== tabId);
+      const nextActiveTopTabId =
+        prev.activeTopTabId === tabId
+          ? (nextTabs[Math.max(0, closingIndex - 1)] ?? nextTabs[0]).id
+          : prev.activeTopTabId;
+
+      return {
+        ...prev,
+        activeTopTabId: nextActiveTopTabId,
+        tabs: nextTabs,
+      };
+    });
+
+    if (editingTopTabId === tabId) {
+      handleCancelRenameTopTab();
+    }
+  };
+
+  const handleActiveLayoutChange = (layoutJson: LayoutJsonConfig) => {
+    setShellState((prev) => ({
+      ...prev,
+      tabs: prev.tabs.map((tab) =>
+        tab.id === prev.activeTopTabId
+          ? { ...tab, layout: layoutJson }
+          : tab,
+      ),
+    }));
+  };
+
   const broadcastMessage = () => {
     eventBus.emit("message", { from: "main", text: "Hello from Micro Panel Hub!" });
     setShowSettingsMenu(false);
@@ -201,6 +444,71 @@ function App(props: MicroPanelHubProps) {
     e.target.value = '';
   };
 
+  useEffect(() => {
+    const pushRecentPanel = (panel: MicroPanelDefinition) => {
+      setRecentPanels((prev) => {
+        const nextPanels = sanitizeRecentPanels([panel, ...prev], addMenu.recentLimit);
+        try {
+          localStorage.setItem(recentStorageKey, JSON.stringify(nextPanels));
+        } catch (error) {
+          console.error("Failed to save recent panels", error);
+        }
+        return nextPanels;
+      });
+    };
+
+    const handleAddPanel = (data: unknown) => {
+      try {
+        const normalizedPanel = normalizePanelDefinition(data as MicroPanelDefinition);
+        pushRecentPanel(normalizedPanel);
+      } catch (error) {
+        console.error("Failed to handle add-panel event", error);
+      }
+    };
+
+    eventBus.on("add-panel", handleAddPanel);
+    return () => {
+      eventBus.off("add-panel", handleAddPanel);
+    };
+  }, [addMenu.recentLimit, eventBus, recentStorageKey]);
+
+  useEffect(() => {
+    const handleExport = () => {
+      const dataStr =
+        "data:text/json;charset=utf-8," +
+        encodeURIComponent(JSON.stringify(shellState, null, 2));
+      const anchor = document.createElement("a");
+      anchor.setAttribute("href", dataStr);
+      anchor.setAttribute("download", DEFAULT_LAYOUT_DOWNLOAD_NAME);
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    };
+
+    const handleImport = (jsonStr: unknown) => {
+      if (typeof jsonStr !== "string") return;
+
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const nextShellState = parseShellStateValue(parsed, title);
+        if (!nextShellState) {
+          throw new Error("Unsupported import JSON");
+        }
+        setShellState(nextShellState);
+      } catch (error) {
+        alert("Invalid layout JSON");
+        console.error(error);
+      }
+    };
+
+    eventBus.on("export-layout", handleExport);
+    eventBus.on("import-layout", handleImport);
+    return () => {
+      eventBus.off("export-layout", handleExport);
+      eventBus.off("import-layout", handleImport);
+    };
+  }, [eventBus, shellState, title]);
+
   const shouldShowPresetDivider =
     addMenu.panels.length > 0 && (addMenu.enableCustomApp || addMenu.enableRecent);
   const shouldShowRecentSection = addMenu.enableRecent && recentPanels.length > 0;
@@ -209,96 +517,159 @@ function App(props: MicroPanelHubProps) {
 
   return (
     <div className={`app-container ${className}`.trim()}>
-      <header className="top-menu">
-        <div className="menu-left">
-          <span className="logo">{title}</span>
-          
-          <div 
-            className="menu-item"
-            onMouseEnter={() => setShowAddMenu(true)}
-            onMouseLeave={() => setShowAddMenu(false)}
-          >
-            Add
-            {showAddMenu && (
-              <div className="dropdown-menu">
-                {addMenu.panels.map((panel, index) => (
-                  <div
-                    className="dropdown-item"
-                    key={`${panel.name}-${index}`}
-                    onClick={() => loadPanel(panel)}
-                  >
-                    {panel.name}
-                  </div>
-                ))}
-                {shouldShowPresetDivider && <div className="dropdown-divider"></div>}
-                {addMenu.enableCustomApp && (
-                  <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
-                )}
-                {shouldShowRecentDivider && <div className="dropdown-divider"></div>}
-                {shouldShowRecentSection && (
-                  <div className="dropdown-section">
-                    <div className="dropdown-section-title">Recent</div>
-                    {recentPanels.map((panel) => (
+      <header className={`top-menu${shellState.topBarCollapsed ? " collapsed" : ""}`}>
+        {shellState.topBarCollapsed ? (
+          <div className="collapsed-top-strip">
+            <button type="button" className="top-bar-toggle" onClick={toggleTopBarCollapsed}>
+              v
+            </button>
+          </div>
+        ) : (
+          <div className="top-menu-row">
+            <div className="menu-left">
+              <span className="logo">{title}</span>
+
+              <div
+                className="menu-item"
+                onMouseEnter={() => setShowAddMenu(true)}
+                onMouseLeave={() => setShowAddMenu(false)}
+              >
+                Add
+                {showAddMenu && (
+                  <div className="dropdown-menu">
+                    {addMenu.panels.map((panel, index) => (
                       <div
-                        className="dropdown-recent-item"
-                        key={getPanelDefinitionIdentity(panel)}
+                        className="dropdown-item"
+                        key={`${panel.name}-${index}`}
                         onClick={() => loadPanel(panel)}
                       >
-                        <div className="dropdown-recent-content">
-                          <span className="dropdown-recent-name">{panel.name}</span>
-                          <span className="dropdown-recent-source">
-                            {panel.source?.value ?? panel.entry ?? "No source"}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          className="dropdown-recent-remove"
-                          aria-label={`Remove recent panel ${panel.name}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            removeRecentPanel(panel);
-                          }}
-                        >
-                          x
-                        </button>
+                        {panel.name}
                       </div>
                     ))}
-                    <button
-                      type="button"
-                      className="dropdown-clear-action"
-                      onClick={clearRecentPanels}
-                    >
-                      Clear History
-                    </button>
+                    {shouldShowPresetDivider && <div className="dropdown-divider"></div>}
+                    {addMenu.enableCustomApp && (
+                      <div className="dropdown-item" onClick={openCustomModal}>Custom App...</div>
+                    )}
+                    {shouldShowRecentDivider && <div className="dropdown-divider"></div>}
+                    {shouldShowRecentSection && (
+                      <div className="dropdown-section">
+                        <div className="dropdown-section-title">Recent</div>
+                        {recentPanels.map((panel) => (
+                          <div
+                            className="dropdown-recent-item"
+                            key={getPanelDefinitionIdentity(panel)}
+                            onClick={() => loadPanel(panel)}
+                          >
+                            <div className="dropdown-recent-content">
+                              <span className="dropdown-recent-name">{panel.name}</span>
+                              <span className="dropdown-recent-source">
+                                {panel.source?.value ?? panel.entry ?? "No source"}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="dropdown-recent-remove"
+                              aria-label={`Remove recent panel ${panel.name}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                removeRecentPanel(panel);
+                              }}
+                            >
+                              x
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          className="dropdown-clear-action"
+                          onClick={clearRecentPanels}
+                        >
+                          Clear History
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          <div 
-            className="menu-item"
-            onMouseEnter={() => setShowSettingsMenu(true)}
-            onMouseLeave={() => setShowSettingsMenu(false)}
-          >
-            Settings
-            {showSettingsMenu && (
-              <div className="dropdown-menu">
-                <div className="dropdown-item" onClick={handleExportLayout}>Export Layout</div>
-                <label className="dropdown-item">
-                  Import Layout
-                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportLayout} />
-                </label>
-                <div className="dropdown-divider"></div>
-                <div className="dropdown-item" onClick={broadcastMessage}>Broadcast Event</div>
+              <div
+                className="menu-item"
+                onMouseEnter={() => setShowSettingsMenu(true)}
+                onMouseLeave={() => setShowSettingsMenu(false)}
+              >
+                Settings
+                {showSettingsMenu && (
+                  <div className="dropdown-menu">
+                    <div className="dropdown-item" onClick={handleExportLayout}>Export Layout</div>
+                    <label className="dropdown-item">
+                      Import Layout
+                      <input type="file" accept=".json" style={{ display: "none" }} onChange={handleImportLayout} />
+                    </label>
+                    <div className="dropdown-divider"></div>
+                    <div className="dropdown-item" onClick={broadcastMessage}>Broadcast Event</div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
 
-        </div>
-        <div className="menu-messages">
-          {messages.length > 0 && <span className="latest-msg">{messages[messages.length - 1]}</span>}
-        </div>
+            <div className="top-tab-strip">
+              {shellState.tabs.map((tab) => (
+                <div
+                  className={`top-workspace-tab${tab.id === activeTopTab.id ? " active" : ""}`}
+                  key={tab.id}
+                  onClick={() => handleActivateTopTab(tab.id)}
+                  onDoubleClick={() => handleStartRenameTopTab(tab)}
+                >
+                  {editingTopTabId === tab.id ? (
+                    <input
+                      autoFocus
+                      className="top-workspace-tab-input"
+                      value={editingTopTabTitle}
+                      onBlur={handleCommitRenameTopTab}
+                      onChange={(event) => setEditingTopTabTitle(event.target.value)}
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          handleCommitRenameTopTab();
+                        }
+                        if (event.key === "Escape") {
+                          handleCancelRenameTopTab();
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="top-workspace-tab-title">{tab.title}</span>
+                  )}
+                  {shellState.tabs.length > 1 && (
+                    <button
+                      type="button"
+                      className="top-workspace-tab-close"
+                      aria-label={`Close ${tab.title}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleCloseTopTab(tab.id);
+                      }}
+                    >
+                      x
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="top-workspace-tab-add" onClick={handleCreateTopTab}>
+                +
+              </button>
+            </div>
+
+            <div className="menu-right">
+              <div className="menu-messages">
+                {messages.length > 0 && <span className="latest-msg">{messages[messages.length - 1]}</span>}
+              </div>
+              <button type="button" className="top-bar-toggle" onClick={toggleTopBarCollapsed}>
+                ^
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Custom App Modal */}
@@ -357,10 +728,11 @@ function App(props: MicroPanelHubProps) {
 
       <main className="workspace-container">
         <FlexWorkspace
+          key={activeTopTab.id}
           title={title}
-          storageKey={storageKey}
-          layoutDownloadName="micro-panel-hub-layout.json"
+          layoutJson={activeTopTab.layout}
           eventBus={eventBus}
+          onLayoutChange={handleActiveLayoutChange}
         />
       </main>
     </div>

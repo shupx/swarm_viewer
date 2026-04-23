@@ -1,211 +1,65 @@
-import React, { useCallback, useRef, useState, useEffect } from "react";
-import {
-  Layout,
-  Model,
-  TabNode,
-  Actions,
-  DockLocation,
-  TabSetNode,
-  Node,
-} from "flexlayout-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Layout, Model, TabNode } from "flexlayout-react";
 import "flexlayout-react/style/light.css";
 import { MicroAppRenderer } from "./MicroAppRenderer";
-import { normalizePanelDefinition } from "../utils/panels";
+import {
+  applyAddPanelToModel,
+  normalizeLayoutJson,
+  normalizeModelJsonForStorage,
+  normalizeTabSetAttributes,
+} from "../utils/workspace";
 
-import type { MicroAppSource, MicroPanelHubEventBus } from "../types";
-
-interface MicroAppConfig {
-  name: string;
-  source?: MicroAppSource;
-  entry?: string;
-}
-
-interface LayoutNodeConfig {
-  component?: string;
-  config?: MicroAppConfig;
-  children?: LayoutNodeConfig[];
-}
-
-interface LayoutJsonConfig {
-  layout?: LayoutNodeConfig;
-  borders?: LayoutNodeConfig[];
-}
-
-interface AddPanelPayload {
-  name: string;
-  source?: MicroAppSource;
-  entry?: string;
-}
+import type { MicroPanelDefinition, MicroPanelHubEventBus } from "../types";
+import type { LayoutJsonConfig } from "../utils/workspace";
 
 interface FlexWorkspaceProps {
   title: string;
-  storageKey: string;
-  layoutDownloadName: string;
+  layoutJson: LayoutJsonConfig;
   eventBus: MicroPanelHubEventBus;
+  onLayoutChange: (layoutJson: LayoutJsonConfig) => void;
 }
-
-const createDefaultConfig = (title: string) => ({
-  global: {
-    tabEnableClose: true,
-    tabSetEnableMaximize: true,
-    tabSetEnableTabStrip: true,
-    splitterSize: 3,
-    splitterExtra: 4,
-    enableEdgeDock: true,
-    borderEnableTabStrip: true,
-  },
-  borders: [],
-  layout: {
-    type: 'row',
-    id: 'main-row',
-    weight: 100,
-    children: [
-      {
-        type: 'tabset',
-        id: 'main_tabset',
-        weight: 100,
-        enableTabStrip: false,
-        children: [
-          {
-            type: "tab",
-            name: `Welcome to ${title}`,
-            component: "welcome",
-          },
-        ],
-      },
-    ],
-  },
-});
-
-const normalizeConfig = (config: MicroAppConfig): MicroAppConfig => {
-  return normalizePanelDefinition(config);
-};
-
-const normalizeLayoutJson = (config: LayoutJsonConfig) => {
-  if (!config) return config;
-
-  const visit = (node?: LayoutNodeConfig) => {
-    if (node?.component === 'sub-app' && node.config) {
-      node.config = normalizeConfig(node.config);
-    }
-
-    if (Array.isArray(node?.children)) {
-      node.children.forEach(visit);
-    }
-  };
-
-  visit(config.layout);
-  if (Array.isArray(config.borders)) {
-    config.borders.forEach(visit);
-  }
-
-  return config;
-};
 
 export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   title,
-  storageKey,
-  layoutDownloadName,
+  layoutJson,
   eventBus,
+  onLayoutChange,
 }) => {
-  const [model, setModel] = useState<Model>(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const normalized = normalizeLayoutJson(JSON.parse(saved));
-        localStorage.setItem(storageKey, JSON.stringify(normalized));
-        return Model.fromJson(normalized);
-      } catch (e) {
-        console.error("Failed to parse saved layout", e);
-      }
-    }
-    return Model.fromJson(createDefaultConfig(title));
-  });
   const layoutRef = useRef<Layout>(null);
+  const initialLayoutJson = normalizeLayoutJson(layoutJson);
+  const [model, setModel] = useState<Model>(() =>
+    Model.fromJson(initialLayoutJson as Record<string, unknown>),
+  );
+  const lastLayoutSignatureRef = useRef(JSON.stringify(initialLayoutJson));
 
-  const onAddPanel = useCallback((name: string, source?: MicroAppSource, entry?: string) => {
-    let targetId = model.getActiveTabset()?.getId();
-    if (!targetId) targetId = "main_tabset";
-    
-    let welcomeNodeId: string | null = null;
-    model.visitNodes((node: Node) => {
-      if (node.getType() === "tab" && (node as TabNode).getComponent() === "welcome") {
-        welcomeNodeId = node.getId();
-      }
-    });
-
-    let config: MicroAppConfig;
-    try {
-      config = normalizeConfig({ name, source, entry });
-    } catch (error) {
-      console.error("Failed to normalize panel config", error);
+  useEffect(() => {
+    const normalizedLayout = normalizeLayoutJson(layoutJson);
+    const nextSignature = JSON.stringify(normalizedLayout);
+    if (nextSignature === lastLayoutSignatureRef.current) {
       return;
     }
 
-    model.doAction(
-      Actions.addNode(
-        {
-          type: "tab",
-          name,
-          component: "sub-app",
-          config,
-        },
-        targetId,
-        welcomeNodeId ? DockLocation.CENTER : DockLocation.RIGHT,
-        -1,
-      ),
-    );
-
-    if (welcomeNodeId) {
-      model.doAction(Actions.deleteTab(welcomeNodeId));
-    }
-  }, [model]);
+    lastLayoutSignatureRef.current = nextSignature;
+    setModel(Model.fromJson(normalizedLayout as Record<string, unknown>));
+  }, [layoutJson]);
 
   useEffect(() => {
-    const handler = (data: unknown) => {
-      const payload = data as AddPanelPayload;
-      onAddPanel(payload.name, payload.source, payload.entry);
-    };
-    eventBus.on("add-panel", handler);
-    return () => {
-      eventBus.off("add-panel", handler);
-    };
-  }, [eventBus, onAddPanel]);
-
-  useEffect(() => {
-    const handleExport = () => {
-      const currentModel = model;
-      if (!currentModel) return;
-      const dataStr =
-        "data:text/json;charset=utf-8," +
-        encodeURIComponent(JSON.stringify(currentModel.toJson(), null, 2));
-      const anchor = document.createElement("a");
-      anchor.setAttribute("href", dataStr);
-      anchor.setAttribute("download", layoutDownloadName);
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-    };
-    
-    const handleImport = (jsonStr: string) => {
+    const handleAddPanel = (data: unknown) => {
       try {
-        const normalized = normalizeLayoutJson(JSON.parse(jsonStr));
-        const newModel = Model.fromJson(normalized);
-        setModel(newModel);
-        localStorage.setItem(storageKey, JSON.stringify(newModel.toJson()));
-      } catch (e) {
-        alert("Invalid layout JSON");
-        console.error(e);
+        applyAddPanelToModel(model, data as MicroPanelDefinition);
+        const nextLayoutJson = normalizeModelJsonForStorage(model);
+        lastLayoutSignatureRef.current = JSON.stringify(nextLayoutJson);
+        onLayoutChange(nextLayoutJson);
+      } catch (error) {
+        console.error("Failed to add panel to active workspace", error);
       }
     };
 
-    eventBus.on("export-layout", handleExport);
-    eventBus.on("import-layout", handleImport);
+    eventBus.on("add-panel", handleAddPanel);
     return () => {
-      eventBus.off("export-layout", handleExport);
-      eventBus.off("import-layout", handleImport);
+      eventBus.off("add-panel", handleAddPanel);
     };
-  }, [eventBus, layoutDownloadName, model, storageKey]);
+  }, [eventBus, model, onLayoutChange]);
 
   const factory = (node: TabNode) => {
     const component = node.getComponent();
@@ -240,25 +94,13 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   };
 
   const onModelChange = (newModel: Model) => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(newModel.toJson()));
-    } catch (e) {
-      console.error("Failed to save layout", e);
-    }
-    newModel.visitNodes((n: Node) => {
-      if (n.getType() === "tabset") {
-        const tabset = n as TabSetNode;
-        const children = tabset.getChildren();
-        const shouldShowTabs = children.length > 1;
-        if (tabset.isEnableTabStrip() !== shouldShowTabs) {
-          setTimeout(() => {
-            newModel.doAction(Actions.updateNodeAttributes(tabset.getId(), {
-              enableTabStrip: shouldShowTabs
-            }));
-          }, 0);
-        }
-      }
-    });
+    setTimeout(() => {
+      normalizeTabSetAttributes(newModel);
+    }, 0);
+
+    const nextLayoutJson = normalizeModelJsonForStorage(newModel);
+    lastLayoutSignatureRef.current = JSON.stringify(nextLayoutJson);
+    onLayoutChange(nextLayoutJson);
   };
 
   return (
