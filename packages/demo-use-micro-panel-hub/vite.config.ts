@@ -59,13 +59,29 @@ function serveSubAppDemoAssets(staticRoot: string): Plugin {
   };
 }
 
+const normalizeBasePath = (value?: string) => {
+  if (!value || value.trim() === "") {
+    return "/";
+  }
+
+  const trimmed = value.trim();
+  if (trimmed === "./" || trimmed === ".") {
+    return "./";
+  }
+
+  const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return withLeadingSlash.endsWith("/") ? withLeadingSlash : `${withLeadingSlash}/`;
+};
+
 export default defineConfig(({ command }) => {
   const isDev = command === "serve";
+  const base = isDev ? "/" : normalizeBasePath(process.env.VITE_BASE_PATH ?? "./");
   const libraryRoot = path.resolve(__dirname, "../micro-panel-hub");
   const librarySourceRoot = path.resolve(libraryRoot, "main-app/src");
   const subAppDistRoot = path.resolve(libraryRoot, "dist/sub-app-demo");
 
   return {
+    base,
     plugins: [
       react(),
       isDev ? serveSubAppDemoAssets(subAppDistRoot) : null,
