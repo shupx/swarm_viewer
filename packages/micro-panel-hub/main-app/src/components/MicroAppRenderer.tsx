@@ -156,7 +156,11 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
         }}
       >
         {/* Custom Inner Toolbar */}
-        <div style={{
+        <div 
+          draggable={true}
+          onDragStart={handleDrag}
+          title="Drag panel"
+          style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 28,
           backgroundColor: 'rgba(255, 255, 255, 0.4)',
           borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
@@ -164,26 +168,28 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
           transform: isHovered ? 'translateY(0)' : 'translateY(-100%)',
           opacity: isHovered ? 1 : 0, 
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-          pointerEvents: isHovered ? 'auto' : 'none'
+          pointerEvents: isHovered ? 'auto' : 'none',
+          cursor: 'grab'
         }}>
           {/* Drag handle (centered) */}
         <div 
-          draggable={true}
-          onDragStart={handleDrag}
           style={{ 
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-            cursor: 'grab', color: '#333', fontSize: 20,
+            color: '#333', fontSize: 20,
             padding: '0 10px', userSelect: 'none', lineHeight: '24px',
             display: 'flex', alignItems: 'center', letterSpacing: '2px',
-            textShadow: '0 0 2px rgba(255,255,255,0.8)'
+            textShadow: '0 0 2px rgba(255,255,255,0.8)',
+            pointerEvents: 'none'
           }}
-          title="Drag panel"
         >
           •••
         </div>
 
         {/* Action icons (top right) */}
-        <div style={{ 
+        <div 
+          draggable={true}
+          onDragStart={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          style={{ 
           position: 'absolute', top: 0, right: 8, display: 'flex', gap: 10,
           alignItems: 'center', height: '100%', color: '#333',
           filter: 'drop-shadow(0 1px 1px rgba(255,255,255,0.8))'
