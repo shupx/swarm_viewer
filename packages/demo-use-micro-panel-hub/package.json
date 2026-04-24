@@ -3,14 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "build:lib": "pnpm --dir ../micro-panel-hub build",
-    "copy:sub-app": "mkdir -p dist/sub-app-demo && cp -R node_modules/@shupeixuan/micro-panel-hub/lib/sub-app-demo/. dist/sub-app-demo/",
-    "sync:lib": "pnpm install --offline",
-    "dev": "pnpm run build:lib && pnpm run sync:lib && webpack serve --mode development",
-    "build": "pnpm run build:lib && pnpm run sync:lib && webpack --mode production && pnpm run copy:sub-app"
+    "dev": "webpack serve --mode development",
+    "copy:sub-app": "mkdir -p dist/sub-app-demo && cp -R ../micro-panel-hub/lib/sub-app-demo/. dist/sub-app-demo/",
+    "build": "webpack --mode production && pnpm run copy:sub-app"
   },
   "dependencies": {
-    "@shupeixuan/micro-panel-hub": "file:../micro-panel-hub",
+    "@shupeixuan/micro-panel-hub": "workspace:../micro-panel-hub",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

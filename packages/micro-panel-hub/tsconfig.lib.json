@@ -7,7 +7,7 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": false,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "5.0"
   },
   "include": ["main-app/src/**/*", "tsup.config.ts"]
 }

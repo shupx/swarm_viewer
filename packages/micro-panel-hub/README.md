@@ -24,6 +24,8 @@ Build the npm library:
 pnpm build
 ```
 
+Within this workspace, `pnpm build` is also the step that prepares the `lib/` output consumed by the demo app's production build. In contrast, the demo app's `pnpm dev` path does not use this `lib/` output and instead links directly to source code for faster iteration.
+
 Inspect the npm package contents:
 
 ```bash
@@ -61,7 +63,7 @@ pnpm pack --dry-run
 - `eventBus`
 - `className`
 
-To run the page demo, use the sibling directory `../demo-use-micro-panel-hub/`.
+To run the page demo, use the sibling workspace package `../demo-use-micro-panel-hub/`.
 
 ## Using It As An npm Package
 

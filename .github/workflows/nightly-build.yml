@@ -205,7 +205,7 @@ jobs:
           node-version: 22.14.0
 
       - name: Prepare nightly version
-        working-directory: micro-panel-hub
+        working-directory: packages/micro-panel-hub
         shell: bash
         env:
           NIGHTLY_VERSION: ${{ needs.check-changes.outputs.nightly_version }}
@@ -213,15 +213,13 @@ jobs:
           node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version=process.env.NIGHTLY_VERSION; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
       - name: Install dependencies
-        working-directory: micro-panel-hub
         run: pnpm install --frozen-lockfile
 
       - name: Build library
-        working-directory: micro-panel-hub
-        run: pnpm build:lib
+        run: pnpm --filter @shupeixuan/micro-panel-hub build:lib
 
       - name: Pack nightly package
-        working-directory: micro-panel-hub
+        working-directory: packages/micro-panel-hub
         shell: bash
         run: |
           mkdir -p nightly-dist
@@ -232,11 +230,11 @@ jobs:
         with:
           name: nightly-dist
           path: |
-            micro-panel-hub/lib/**
-            micro-panel-hub/package.json
-            micro-panel-hub/README.md
-            micro-panel-hub/LICENSE
-            micro-panel-hub/nightly-dist/*.tgz
+            packages/micro-panel-hub/lib/**
+            packages/micro-panel-hub/package.json
+            packages/micro-panel-hub/README.md
+            packages/micro-panel-hub/LICENSE
+            packages/micro-panel-hub/nightly-dist/*.tgz
           if-no-files-found: error
           retention-days: 7
 
@@ -388,7 +386,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Set nightly package version
-        working-directory: micro-panel-hub
+        working-directory: packages/micro-panel-hub
         shell: bash
         env:
           NIGHTLY_VERSION: ${{ needs.check-changes.outputs.nightly_version }}
@@ -396,15 +394,13 @@ jobs:
           node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version=process.env.NIGHTLY_VERSION; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
       - name: Install dependencies
-        working-directory: micro-panel-hub
         run: pnpm install --frozen-lockfile
 
       - name: Build library
-        working-directory: micro-panel-hub
-        run: pnpm build:lib
+        run: pnpm --filter @shupeixuan/micro-panel-hub build:lib
 
       - name: Publish to npm with access token
-        working-directory: micro-panel-hub
+        working-directory: packages/micro-panel-hub
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --tag dev

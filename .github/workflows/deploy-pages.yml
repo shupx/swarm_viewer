@@ -41,33 +41,23 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('micro-panel-hub/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Install library dependencies
-        working-directory: micro-panel-hub
+      - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build library package
-        working-directory: micro-panel-hub
-        run: pnpm build
-
-      - name: Install demo dependencies
-        working-directory: demo-use-micro-panel-hub
-        run: pnpm install --frozen-lockfile
-
-      - name: Build demo
-        working-directory: demo-use-micro-panel-hub
+      - name: Build workspace
         run: pnpm build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: demo-use-micro-panel-hub/dist
+          path: packages/demo-use-micro-panel-hub/dist
 
   deploy:
     environment:

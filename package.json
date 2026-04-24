@@ -1,0 +1,12 @@
+{
+  "name": "micro-panel-hub-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @shupeixuan/micro-panel-hub --filter demo-use-micro-panel-hub dev",
+    "build": "pnpm --filter @shupeixuan/micro-panel-hub build && pnpm --filter demo-use-micro-panel-hub build",
+    "build:lib": "pnpm --filter @shupeixuan/micro-panel-hub build",
+    "build:demo": "pnpm --filter demo-use-micro-panel-hub build",
+    "lint": "pnpm -r lint"
+  }
+}
