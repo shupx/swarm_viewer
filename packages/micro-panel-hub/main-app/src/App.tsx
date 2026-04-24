@@ -93,6 +93,13 @@ const createWorkspaceTab = (id: string, hubTitle: string, customTitle?: string):
   layout: createDefaultLayoutConfig(hubTitle),
 });
 
+const createEmptyShellState = (): ShellState => ({
+  version: SHELL_STATE_VERSION,
+  topBarCollapsed: false,
+  activeTopTabId: "",
+  tabs: [],
+});
+
 const createDefaultShellState = (hubTitle: string): ShellState => {
   const initialTab = createWorkspaceTab("tab-1", hubTitle);
 
@@ -138,7 +145,12 @@ const normalizeShellState = (value: Partial<ShellState>, hubTitle: string): Shel
     : [];
 
   if (tabs.length === 0) {
-    return createDefaultShellState(hubTitle);
+    return {
+      version: SHELL_STATE_VERSION,
+      topBarCollapsed: Boolean(value.topBarCollapsed),
+      activeTopTabId: "",
+      tabs: [],
+    };
   }
 
   const activeTopTabId =
@@ -229,7 +241,8 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
     loadRecentPanels(recentStorageKey, addMenu.recentLimit),
   );
   const activeTopTab =
-    shellState.tabs.find((tab) => tab.id === shellState.activeTopTabId) ?? shellState.tabs[0];
+    shellState.tabs.find((tab) => tab.id === shellState.activeTopTabId) ?? shellState.tabs[0] ?? null;
+  const emptyWorkspaceLayout = createDefaultLayoutConfig(title);
 
   useEffect(() => {
     const handler = (msg: unknown) => {
@@ -388,16 +401,20 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
 
   const handleCloseTopTab = (tabId: string) => {
     setShellState((prev) => {
-      if (prev.tabs.length <= 1) {
-        return prev;
-      }
-
       const closingIndex = prev.tabs.findIndex((tab) => tab.id === tabId);
       if (closingIndex === -1) {
         return prev;
       }
 
       const nextTabs = prev.tabs.filter((tab) => tab.id !== tabId);
+      if (nextTabs.length === 0) {
+        return {
+          ...prev,
+          activeTopTabId: "",
+          tabs: [],
+        };
+      }
+
       const nextActiveTopTabId =
         prev.activeTopTabId === tabId
           ? (nextTabs[Math.max(0, closingIndex - 1)] ?? nextTabs[0]).id
@@ -418,11 +435,19 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
   const handleActiveLayoutChange = (layoutJson: LayoutJsonConfig) => {
     setShellState((prev) => ({
       ...prev,
-      tabs: prev.tabs.map((tab) =>
-        tab.id === prev.activeTopTabId
-          ? { ...tab, layout: layoutJson }
-          : tab,
-      ),
+      activeTopTabId: prev.tabs.length === 0 ? "tab-1" : prev.activeTopTabId,
+      tabs: prev.tabs.length === 0
+        ? [
+            {
+              ...createWorkspaceTab("tab-1", title),
+              layout: layoutJson,
+            },
+          ]
+        : prev.tabs.map((tab) =>
+            tab.id === prev.activeTopTabId
+              ? { ...tab, layout: layoutJson }
+              : tab,
+          ),
     }));
   };
 
@@ -620,7 +645,7 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
             <div className="top-tab-strip">
               {shellState.tabs.map((tab) => (
                 <div
-                  className={`top-workspace-tab${tab.id === activeTopTab.id ? " active" : ""}`}
+                  className={`top-workspace-tab${tab.id === activeTopTab?.id ? " active" : ""}`}
                   key={tab.id}
                   onClick={() => handleActivateTopTab(tab.id)}
                   onDoubleClick={() => handleStartRenameTopTab(tab)}
@@ -645,19 +670,17 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
                   ) : (
                     <span className="top-workspace-tab-title">{tab.title}</span>
                   )}
-                  {shellState.tabs.length > 1 && (
-                    <button
-                      type="button"
-                      className="top-workspace-tab-close"
-                      aria-label={`Close ${tab.title}`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleCloseTopTab(tab.id);
-                      }}
-                    >
-                      x
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="top-workspace-tab-close"
+                    aria-label={`Close ${tab.title}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleCloseTopTab(tab.id);
+                    }}
+                  >
+                    x
+                  </button>
                 </div>
               ))}
               <button type="button" className="top-workspace-tab-add" onClick={handleCreateTopTab}>
@@ -733,9 +756,9 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
 
       <main className="workspace-container">
         <FlexWorkspace
-          key={activeTopTab.id}
+          key={activeTopTab?.id ?? "empty-workspace"}
           title={title}
-          layoutJson={activeTopTab.layout}
+          layoutJson={activeTopTab?.layout ?? emptyWorkspaceLayout}
           eventBus={eventBus}
           onLayoutChange={handleActiveLayoutChange}
         />
