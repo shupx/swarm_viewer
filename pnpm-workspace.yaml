@@ -1,2 +1,4 @@
 packages:
   - packages/*
+  - packages/micro-panel-hub/main-app
+  - packages/micro-panel-hub/sub-app-demo
