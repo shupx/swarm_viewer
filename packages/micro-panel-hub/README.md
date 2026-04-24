@@ -73,6 +73,8 @@ Install:
 pnpm add @shupeixuan/micro-panel-hub react react-dom
 ```
 
+The host app does not have to be written with React. Vue, plain TypeScript, or other frameworks can also embed this package. The current implementation is still rendered internally with React, so `react` and `react-dom` remain required runtime dependencies. For non-React hosts, prefer the imperative `mountMicroPanelHub(...)` API.
+
 Component usage:
 
 ```tsx

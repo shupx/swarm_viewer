@@ -1,6 +1,6 @@
 # micro-panel-hub
 
-`micro-panel-hub` is a micro-frontend workspace library built with `qiankun` and `flexlayout-react`. It is published as the npm package `@shupeixuan/micro-panel-hub` for embedding into other React projects.
+`micro-panel-hub` is a micro-frontend workspace library built with `qiankun` and `flexlayout-react`. It is published as the npm package `@shupeixuan/micro-panel-hub` for embedding into host applications. The host app does not have to be written with React, but the current implementation is still rendered internally with React and therefore requires `react` and `react-dom` at runtime.
 
 Live preview of the demo app: [https://shupx.github.io/micro-panel-hub/](https://shupx.github.io/micro-panel-hub/)
 
