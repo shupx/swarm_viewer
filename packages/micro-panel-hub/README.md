@@ -54,6 +54,7 @@ pnpm pack --dry-run
 ## Main Configuration Options
 
 - `title`
+- `titleLink`
 - `defaultPanels`
 - `addMenu`
 - `initialLayout`
@@ -97,6 +98,10 @@ export function Demo() {
       <MicroPanelHub
         ref={hubRef}
         title="Embedded Micro Panel Hub"
+        titleLink={{
+          href: "https://github.com/shupx/micro-panel-hub",
+          target: "_blank",
+        }}
         defaultPanels={[createSubAppDemoPanel()]}
         addMenu={{
           panels: [
@@ -118,6 +123,8 @@ export function Demo() {
 ```
 
 `addMenu.panels` overrides `defaultPanels` when both are provided. This lets hosts keep backward compatibility while moving to the more explicit Add menu API.
+
+`titleLink` makes the top-left title clickable. When `target="_blank"`, the component adds `rel="noopener noreferrer"` automatically.
 
 `initialLayout` is used only when there is no saved shell state for `storageKey`. Saved data still wins on reload. Use `ref.exportLayout()` in React mode or `mountMicroPanelHub(...).exportLayout()` in imperative mode to retrieve the current full shell layout.
 
@@ -168,6 +175,10 @@ import "@shupeixuan/micro-panel-hub/styles.css";
 
 const mounted = mountMicroPanelHub(document.getElementById("root")!, {
   title: "Embedded Micro Panel Hub",
+  titleLink: {
+    href: "https://github.com/shupx/micro-panel-hub",
+    target: "_blank",
+  },
 });
 
 mounted.unmount();
@@ -233,6 +244,7 @@ Before enabling automatic nightly publishing, complete the following setup:
 ## Current Defaults
 
 - Default title: `Micro Panel Hub`
+- Default title link: `https://github.com/shupx/micro-panel-hub` with `_blank`
 - Default panels: none. Hosts should deploy their own micro apps and pass `defaultPanels` when they want an app to appear in the Add menu.
 - Default custom app route placeholder: `/sub-app-demo/`
 - Default layout storage key: `micro_panel_hub_layout`

@@ -45,6 +45,7 @@
     "qiankun": "^2.10.16"
   },
   "devDependencies": {
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.0",
+    "typescript": "~6.0.2"
   }
 }

@@ -214,6 +214,7 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
   const { initialLayout } = props;
   const {
     title,
+    titleLink,
     addMenu,
     defaultCustomAppName,
     defaultRelativeRoute,
@@ -557,7 +558,18 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
         ) : (
           <div className="top-menu-row">
             <div className="menu-left">
-              <span className="logo">{title}</span>
+              {titleLink ? (
+                <a
+                  className="logo logo-link"
+                  href={titleLink.href}
+                  target={titleLink.target}
+                  rel={titleLink.target === "_blank" ? "noopener noreferrer" : undefined}
+                >
+                  {title}
+                </a>
+              ) : (
+                <span className="logo">{title}</span>
+              )}
 
               <div
                 className="menu-item"

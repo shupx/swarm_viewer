@@ -21,6 +21,11 @@ export interface MicroPanelDefinition {
   entry?: string;
 }
 
+export interface MicroPanelHubTitleLink {
+  href: string;
+  target?: "_blank" | "_self";
+}
+
 export interface MicroPanelAddMenuOptions {
   panels?: MicroPanelDefinition[];
   enableCustomApp?: boolean;
@@ -30,6 +35,7 @@ export interface MicroPanelAddMenuOptions {
 
 export interface MicroPanelHubProps {
   title?: string;
+  titleLink?: MicroPanelHubTitleLink;
   defaultPanels?: MicroPanelDefinition[];
   addMenu?: MicroPanelAddMenuOptions;
   initialLayout?: MicroPanelHubShellLayout;

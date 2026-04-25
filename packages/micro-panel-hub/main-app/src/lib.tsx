@@ -10,6 +10,7 @@ export type {
   MicroPanelHubEvents,
   MicroPanelHubMountOptions,
   MicroPanelHubProps,
+  MicroPanelHubTitleLink,
 } from "./types";
 export type {
   MicroPanelHubLayoutJson,

@@ -5,9 +5,14 @@ import type {
   MicroPanelDefinition,
   MicroPanelHubEventBus,
   MicroPanelHubProps,
+  MicroPanelHubTitleLink,
 } from "./types";
 
 export const DEFAULT_TITLE = "Micro Panel Hub";
+export const DEFAULT_TITLE_LINK: MicroPanelHubTitleLink = {
+  href: "https://github.com/shupx/micro-panel-hub",
+  target: "_blank",
+};
 export const DEFAULT_CUSTOM_APP_NAME = "MyApp";
 export const DEFAULT_RELATIVE_ROUTE = "/sub-app-demo/";
 export const DEFAULT_STORAGE_KEY = "micro_panel_hub_layout";
@@ -50,6 +55,24 @@ export interface ResolvedAddMenuOptions {
   recentLimit: number;
 }
 
+const normalizeTitleLink = (
+  titleLink: MicroPanelHubProps["titleLink"],
+): MicroPanelHubTitleLink | undefined => {
+  if (!titleLink || typeof titleLink !== "object") {
+    return undefined;
+  }
+
+  const href = typeof titleLink.href === "string" ? titleLink.href.trim() : "";
+  if (!href) {
+    return undefined;
+  }
+
+  return {
+    href,
+    target: titleLink.target === "_self" ? "_self" : titleLink.target === "_blank" ? "_blank" : undefined,
+  };
+};
+
 export const resolveHubProps = (
   props: MicroPanelHubProps = {},
 ): Required<
@@ -62,13 +85,21 @@ export const resolveHubProps = (
     | "storageKey"
     | "className"
   >
-> & { addMenu: ResolvedAddMenuOptions; eventBus: MicroPanelHubEventBus } => {
+> &
+  Pick<MicroPanelHubProps, "titleLink"> & {
+    addMenu: ResolvedAddMenuOptions;
+    eventBus: MicroPanelHubEventBus;
+  } => {
   const defaultPanels = props.defaultPanels ?? DEFAULT_PANELS;
   const addMenu = props.addMenu ?? {};
   const recentLimit = Math.max(0, addMenu.recentLimit ?? DEFAULT_ADD_MENU.recentLimit);
+  const normalizedTitleLink = normalizeTitleLink(props.titleLink);
 
   return {
     title: props.title ?? DEFAULT_TITLE,
+    titleLink: normalizedTitleLink
+      ? { ...DEFAULT_TITLE_LINK, ...normalizedTitleLink }
+      : DEFAULT_TITLE_LINK,
     defaultPanels,
     defaultCustomAppName: props.defaultCustomAppName ?? DEFAULT_CUSTOM_APP_NAME,
     defaultRelativeRoute: props.defaultRelativeRoute ?? DEFAULT_RELATIVE_ROUTE,

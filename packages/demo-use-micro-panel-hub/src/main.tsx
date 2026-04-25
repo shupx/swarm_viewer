@@ -18,6 +18,10 @@ function DemoApp() {
       <MicroPanelHub
         ref={hubRef}
         title="Demo Use Micro Panel Hub"
+        titleLink={{
+          href: "https://github.com/shupx/micro-panel-hub",
+          target: "_blank",
+        }}
         defaultCustomAppName="Local Demo App"
         defaultPanels={[defaultDemoPanel]}
         initialLayout={initialLayout}
