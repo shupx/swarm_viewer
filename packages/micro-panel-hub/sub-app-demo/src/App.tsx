@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 interface EventBusLike {
@@ -11,6 +11,8 @@ function App({ eventBus }: { eventBus?: EventBusLike }) {
   const [messages, setMessages] = useState<string[]>([]);
   const [inputVal, setInputVal] = useState('');
   const [messageLimit, setMessageLimit] = useState(100);
+  const messagesListRef = useRef<HTMLUListElement | null>(null);
+  const shouldStickToBottomRef = useRef(true);
 
   useEffect(() => {
     if (!eventBus) return;
@@ -28,6 +30,25 @@ function App({ eventBus }: { eventBus?: EventBusLike }) {
   useEffect(() => {
     setMessages((prev) => prev.slice(-messageLimit));
   }, [messageLimit]);
+
+  useEffect(() => {
+    const list = messagesListRef.current;
+    if (!list || !shouldStickToBottomRef.current) {
+      return;
+    }
+
+    list.scrollTop = list.scrollHeight;
+  }, [messages]);
+
+  const handleMessagesScroll = () => {
+    const list = messagesListRef.current;
+    if (!list) {
+      return;
+    }
+
+    const distanceFromBottom = list.scrollHeight - (list.scrollTop + list.clientHeight);
+    shouldStickToBottomRef.current = distanceFromBottom <= 8;
+  };
 
   const sendMsg = () => {
     if (eventBus) {
@@ -81,7 +102,11 @@ function App({ eventBus }: { eventBus?: EventBusLike }) {
               </button>
             </div>
           </div>
-          <ul style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', color: '#555', flex: 1, minHeight: 0, overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px', background: '#fafafa' }}>
+          <ul
+            ref={messagesListRef}
+            onScroll={handleMessagesScroll}
+            style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', color: '#555', flex: 1, minHeight: 0, overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px', background: '#fafafa' }}
+          >
             {messages.map((m, i) => (
               <li key={i} style={{ padding: '8px 10px', borderBottom: '1px solid #eee', wordBreak: 'break-word' }}>{m}</li>
             ))}
