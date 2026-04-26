@@ -10,17 +10,24 @@ interface EventBusLike {
 function App({ eventBus }: { eventBus?: EventBusLike }) {
   const [messages, setMessages] = useState<string[]>([]);
   const [inputVal, setInputVal] = useState('');
+  const [messageLimit, setMessageLimit] = useState(100);
 
   useEffect(() => {
     if (!eventBus) return;
     const handler = (msg: unknown) => {
-      setMessages((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${JSON.stringify(msg)}`].slice(-5));
+      setMessages((prev) =>
+        [...prev, `${new Date().toLocaleTimeString()} - ${JSON.stringify(msg)}`].slice(-messageLimit),
+      );
     };
     eventBus.on('message', handler);
     return () => {
       eventBus.off('message', handler);
     };
-  }, [eventBus]);
+  }, [eventBus, messageLimit]);
+
+  useEffect(() => {
+    setMessages((prev) => prev.slice(-messageLimit));
+  }, [messageLimit]);
 
   const sendMsg = () => {
     if (eventBus) {
@@ -33,7 +40,7 @@ function App({ eventBus }: { eventBus?: EventBusLike }) {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundColor: '#ffffff' }}>
-      <div style={{ padding: '20px', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ padding: '20px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <h3 style={{ margin: '0 0 16px 0', color: '#2c3e50' }}>Sub App Dashboard</h3>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', width: '100%' }}>
           <input 
@@ -47,11 +54,36 @@ function App({ eventBus }: { eventBus?: EventBusLike }) {
             Send
           </button>
         </div>
-        <div>
-          <h4 style={{ margin: '0 0 8px 0', color: '#7f8c8d', fontSize: '14px' }}>Event Bus Messages received:</h4>
-          <ul style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', color: '#555' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
+            <h4 style={{ margin: 0, color: '#7f8c8d', fontSize: '14px' }}>Event Bus Messages received:</h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#7f8c8d', fontSize: '13px' }}>
+                Keep
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={messageLimit}
+                  onChange={(e) => {
+                    const next = Number.parseInt(e.target.value, 10);
+                    setMessageLimit(Number.isFinite(next) && next > 0 ? next : 1);
+                  }}
+                  style={{ width: '72px', padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setMessages([])}
+                style={{ padding: '4px 10px', border: '1px solid #ddd', borderRadius: '4px', background: '#fff', color: '#555', cursor: 'pointer' }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <ul style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', color: '#555', flex: 1, minHeight: 0, overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px', background: '#fafafa' }}>
             {messages.map((m, i) => (
-              <li key={i} style={{ padding: '4px 0', borderBottom: '1px solid #eee' }}>{m}</li>
+              <li key={i} style={{ padding: '8px 10px', borderBottom: '1px solid #eee', wordBreak: 'break-word' }}>{m}</li>
             ))}
           </ul>
         </div>
