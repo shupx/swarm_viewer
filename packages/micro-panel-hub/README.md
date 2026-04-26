@@ -4,6 +4,8 @@ micro-panel-hub is a micro-frontend workspace library built with `qiankun` and `
 
 Live preview of the demo that uses micro-panel-hub: [https://shupx.github.io/micro-panel-hub/](https://shupx.github.io/micro-panel-hub/)
 
+> Note: qiankun only supports sub app built with webpack, not vite!
+
 ## Project Structure
 
 - `main-app/`: library entry code and internal UI logic

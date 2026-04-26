@@ -4,14 +4,16 @@
 
 Live preview of the demo app: [https://shupx.github.io/micro-panel-hub/](https://shupx.github.io/micro-panel-hub/)
 
+> Note: qiankun only supports sub app built with webpack, not vite!
+
 ![Micro Panel Hub screenshot](misc/main.png)
 
 ## Monorepo Structure
 
 This repository is managed as a `pnpm` workspace monorepo:
 
-- [packages/micro-panel-hub](/home/spx/spx_ws/swarm_viewer_dev/micro-panel-hub/packages/micro-panel-hub): the publishable library package
-- [packages/demo-use-micro-panel-hub](/home/spx/spx_ws/swarm_viewer_dev/micro-panel-hub/packages/demo-use-micro-panel-hub): the Vite demo host app that consumes the library
+- [packages/micro-panel-hub](packages/micro-panel-hub): the publishable library package
+- [packages/demo-use-micro-panel-hub](packages/demo-use-micro-panel-hub): the Vite demo host app that consumes the library
 
 The library package itself still contains:
 
@@ -109,12 +111,12 @@ The published npm package includes `lib/`, `README.md`, and `LICENSE`, and does 
 
 ## GitHub Actions
 
-Inside [.github/workflows](/home/spx/spx_ws/swarm_viewer_dev/micro-panel-hub/.github/workflows):
+Inside [.github/workflows](.github/workflows):
 
 - `deploy-pages.yml`: installs the workspace, builds it from the root, and deploys `packages/demo-use-micro-panel-hub/dist`
 - `nightly-build.yml`: builds and packages `packages/micro-panel-hub`, then publishes the nightly npm package and release artifacts
 
 ## More Documentation
 
-- Library package docs: [packages/micro-panel-hub/README.md](/home/spx/spx_ws/swarm_viewer_dev/micro-panel-hub/packages/micro-panel-hub/README.md)
-- Demo package docs: [packages/demo-use-micro-panel-hub/README.md](/home/spx/spx_ws/swarm_viewer_dev/micro-panel-hub/packages/demo-use-micro-panel-hub/README.md)
+- Library package docs: [packages/micro-panel-hub/README.md](packages/micro-panel-hub/README.md)
+- Demo package docs: [packages/demo-use-micro-panel-hub/README.md](packages/demo-use-micro-panel-hub/README.md)

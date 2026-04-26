@@ -2,6 +2,8 @@
 
 这个示例项目演示如何在自己的 React + Vite 项目中消费本地包 `@shupeixuan/micro-panel-hub`。当前页面运行、构建和调用流程都放在这个 demo 项目里。
 
+> 注意，qiankun目前只支持webpack构建的子应用，不支持vite！
+
 这个仓库现在使用 pnpm workspace monorepo 管理：
 
 - 开发时，demo 通过 Vite alias 直接引用 `../micro-panel-hub/main-app/src/` 源码，不需要先构建库的 `lib/`
