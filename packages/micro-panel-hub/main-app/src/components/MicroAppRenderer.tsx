@@ -42,13 +42,30 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
   onCrossWorkspaceDragEnd,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerDocument, setContainerDocument] = useState<Document | null>(null);
   const microAppRef = useRef<MicroApp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const parent = node?.getParent();
   const isPoppedOut = node?.isPoppedOut() ?? false;
+  const isSelected = node?.isSelected() ?? true;
   const isMaximized = !isPoppedOut && model?.getMaximizedTabset()?.getId() === parent?.getId();
+
+  const setContainerElement = useCallback((element: HTMLDivElement | null) => {
+    containerRef.current = element;
+    setContainerDocument(element?.ownerDocument ?? null);
+  }, []);
+
+  useEffect(() => {
+    if (!isPoppedOut || !isSelected || !containerDocument || !node) {
+      return;
+    }
+
+    const windowId = node.getWindowId();
+    const shortWindowId = windowId.length > 8 ? windowId.slice(0, 8) : windowId;
+    containerDocument.title = `${name} (${shortWindowId})`;
+  }, [containerDocument, isPoppedOut, isSelected, name, node]);
 
   const loadApp = useCallback(async () => {
     if (!containerRef.current) return;
@@ -319,7 +336,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
           </button>
         </div>
       )}
-      <div ref={containerRef} className="micro-app-wrapper" style={{ width: '100%', height: '100%' }} />
+      <div ref={setContainerElement} className="micro-app-wrapper" style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };
