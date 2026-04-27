@@ -27,7 +27,6 @@ interface MicroAppRendererProps {
   sharedState: MicroPanelHubSharedState;
   onCrossWorkspaceDragStart?: (payload: MicroPanelCrossWorkspaceDragData) => void;
   onCrossWorkspaceDragEnd?: () => void;
-  onLayoutPersistenceRequest?: () => void;
 }
 
 export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
@@ -41,7 +40,6 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
   sharedState,
   onCrossWorkspaceDragStart,
   onCrossWorkspaceDragEnd,
-  onLayoutPersistenceRequest,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerDocument, setContainerDocument] = useState<Document | null>(null);
@@ -68,87 +66,6 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
     const shortWindowId = windowId.length > 8 ? windowId.slice(0, 8) : windowId;
     containerDocument.title = `${name} (${shortWindowId})`;
   }, [containerDocument, isPoppedOut, isSelected, name, node]);
-
-  useEffect(() => {
-    if (!isPoppedOut || !containerDocument || !onLayoutPersistenceRequest) {
-      return;
-    }
-
-    const popoutWindow = containerDocument.defaultView;
-    if (!popoutWindow) {
-      return;
-    }
-
-    let frameId: number | null = null;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let lastRectSignature = [
-      popoutWindow.screenX,
-      popoutWindow.screenY,
-      popoutWindow.outerWidth,
-      popoutWindow.outerHeight,
-    ].join(":");
-
-    const flushLayoutPersistence = () => {
-      frameId = null;
-      timeoutId = null;
-
-      const nextRectSignature = [
-        popoutWindow.screenX,
-        popoutWindow.screenY,
-        popoutWindow.outerWidth,
-        popoutWindow.outerHeight,
-      ].join(":");
-
-      if (nextRectSignature === lastRectSignature) {
-        return;
-      }
-
-      lastRectSignature = nextRectSignature;
-      onLayoutPersistenceRequest();
-    };
-
-    const scheduleLayoutPersistence = () => {
-      if (frameId !== null) {
-        popoutWindow.cancelAnimationFrame(frameId);
-      }
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-
-      frameId = popoutWindow.requestAnimationFrame(() => {
-        timeoutId = setTimeout(flushLayoutPersistence, 120);
-      });
-    };
-
-    const pollId = popoutWindow.setInterval(() => {
-      const nextRectSignature = [
-        popoutWindow.screenX,
-        popoutWindow.screenY,
-        popoutWindow.outerWidth,
-        popoutWindow.outerHeight,
-      ].join(":");
-
-      if (nextRectSignature !== lastRectSignature) {
-        scheduleLayoutPersistence();
-      }
-    }, 400);
-
-    popoutWindow.addEventListener("resize", scheduleLayoutPersistence);
-    popoutWindow.addEventListener("beforeunload", flushLayoutPersistence);
-
-    return () => {
-      popoutWindow.removeEventListener("resize", scheduleLayoutPersistence);
-      popoutWindow.removeEventListener("beforeunload", flushLayoutPersistence);
-      popoutWindow.clearInterval(pollId);
-
-      if (frameId !== null) {
-        popoutWindow.cancelAnimationFrame(frameId);
-      }
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [containerDocument, isPoppedOut, onLayoutPersistenceRequest]);
 
   const loadApp = useCallback(async () => {
     if (!containerRef.current) return;

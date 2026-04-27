@@ -49,6 +49,17 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   );
   const lastLayoutSignatureRef = useRef(JSON.stringify(initialLayoutJson));
 
+  const persistModelLayout = (targetModel: Model) => {
+    const nextLayoutJson = normalizeModelJsonForStorage(targetModel);
+    const nextSignature = JSON.stringify(nextLayoutJson);
+    if (nextSignature === lastLayoutSignatureRef.current) {
+      return;
+    }
+
+    lastLayoutSignatureRef.current = nextSignature;
+    onLayoutChange(nextLayoutJson);
+  };
+
   useEffect(() => {
     const normalizedLayout = normalizeLayoutJson(layoutJson);
     const nextSignature = JSON.stringify(normalizedLayout);
@@ -68,9 +79,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
     const handleAddPanel = (data: unknown) => {
       try {
         applyAddPanelToModel(model, data as MicroPanelDefinition);
-        const nextLayoutJson = normalizeModelJsonForStorage(model);
-        lastLayoutSignatureRef.current = JSON.stringify(nextLayoutJson);
-        onLayoutChange(nextLayoutJson);
+        persistModelLayout(model);
       } catch (error) {
         console.error("Failed to add panel to active workspace", error);
       }
@@ -81,6 +90,52 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
       eventBus.off("add-panel", handleAddPanel);
     };
   }, [eventBus, isActive, model, onLayoutChange]);
+
+  useEffect(() => {
+    const getPopoutWindowsSignature = () => {
+      const parts: string[] = [];
+
+      for (const [windowId, layoutWindow] of model.getwindowsMap()) {
+        if (windowId === Model.MAIN_WINDOW_ID) {
+          continue;
+        }
+
+        const currentWindow = layoutWindow.window;
+        if (currentWindow && currentWindow.screenTop > -1e4) {
+          parts.push(
+            [
+              windowId,
+              currentWindow.screenLeft,
+              currentWindow.screenTop,
+              currentWindow.outerWidth,
+              currentWindow.outerHeight,
+            ].join(":"),
+          );
+          continue;
+        }
+
+        const rect = layoutWindow.rect;
+        parts.push([windowId, rect.x, rect.y, rect.width, rect.height].join(":"));
+      }
+
+      return parts.sort().join("|");
+    };
+
+    let lastPopoutSignature = getPopoutWindowsSignature();
+    const intervalId = window.setInterval(() => {
+      const nextPopoutSignature = getPopoutWindowsSignature();
+      if (nextPopoutSignature === lastPopoutSignature) {
+        return;
+      }
+
+      lastPopoutSignature = nextPopoutSignature;
+      persistModelLayout(model);
+    }, 250);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [model, onLayoutChange]);
 
   const factory = (node: TabNode) => {
     const component = node.getComponent();
@@ -111,16 +166,6 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
           sharedState={sharedState}
           onCrossWorkspaceDragStart={onPanelDragStart}
           onCrossWorkspaceDragEnd={onPanelDragEnd}
-          onLayoutPersistenceRequest={() => {
-            const nextLayoutJson = normalizeModelJsonForStorage(model);
-            const nextSignature = JSON.stringify(nextLayoutJson);
-            if (nextSignature === lastLayoutSignatureRef.current) {
-              return;
-            }
-
-            lastLayoutSignatureRef.current = nextSignature;
-            onLayoutChange(nextLayoutJson);
-          }}
         />
       );
     }
@@ -133,9 +178,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
       normalizeTabSetAttributes(newModel);
     }, 0);
 
-    const nextLayoutJson = normalizeModelJsonForStorage(newModel);
-    lastLayoutSignatureRef.current = JSON.stringify(nextLayoutJson);
-    onLayoutChange(nextLayoutJson);
+    persistModelLayout(newModel);
   };
 
   return (
