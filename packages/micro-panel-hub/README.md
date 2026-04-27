@@ -54,6 +54,7 @@ pnpm pack --dry-run
 | `MicroPanelHubSharedState` | Type | Shared state type | Key-value store injected into qiankun props |
 | `@shupeixuan/micro-panel-hub/styles.css` | Style entry | Imports the component styles | Recommended for host apps |
 | `@shupeixuan/micro-panel-hub/flexlayout-light.css` | Style entry | Imports the default FlexLayout theme styles | Useful when the host wants explicit control |
+| `@shupeixuan/micro-panel-hub/popout.html` | Static asset | Host page for FlexLayout browser popout windows | Must be served by the host app |
 
 ## Main Configuration Options
 
@@ -65,6 +66,7 @@ pnpm pack --dry-run
 - `defaultCustomAppName`
 - `defaultRelativeRoute`
 - `storageKey`
+- `popoutUrl`
 - `eventBus`
 - `sharedState`
 - `className`
@@ -137,6 +139,8 @@ export function Demo() {
 
 Recent history is stored in `localStorage` under `${storageKey}__recent_panels`. It records panels opened from the Add menu, including custom URLs, deduplicates by normalized source, and shows the newest entries inline in the Add dropdown.
 
+`popoutUrl` controls where the browser popout host page is served from. It defaults to `popout.html`, which works when the file is hosted beside the main page. Hosts deployed under a custom base path should pass an explicit path such as `/docs/popout.html`.
+
 ## Optional Packaged Demo Micro App
 
 The npm package includes a built demo micro app under:
@@ -164,6 +168,7 @@ devServer: {
 Production build example:
 
 ```bash
+cp node_modules/@shupeixuan/micro-panel-hub/lib/popout.html dist/popout.html
 mkdir -p dist/sub-app-demo
 cp -R node_modules/@shupeixuan/micro-panel-hub/lib/sub-app-demo/. dist/sub-app-demo/
 ```
@@ -172,6 +177,28 @@ If the assets are served from a different path, pass that path to the helper:
 
 ```tsx
 createSubAppDemoPanel({ route: "/docs/sub-app-demo/" })
+```
+
+## Browser Popout Windows
+
+Browser popout windows are enabled for all panels. The package ships the required host page at:
+
+```text
+node_modules/@shupeixuan/micro-panel-hub/lib/popout.html
+```
+
+Host applications must serve that file so FlexLayout can open new browser windows. If the popout page is not served from the same directory as the main page, pass `popoutUrl`:
+
+```tsx
+<MicroPanelHub popoutUrl="/docs/popout.html" />
+```
+
+Imperative mount example:
+
+```ts
+mountMicroPanelHub(container, {
+  popoutUrl: "/docs/popout.html",
+});
 ```
 
 Imperative mount usage:
@@ -186,6 +213,7 @@ const mounted = mountMicroPanelHub(document.getElementById("root")!, {
     href: "https://github.com/shupx/micro-panel-hub",
     target: "_blank",
   },
+  popoutUrl: "/popout.html",
   sharedState: getDefaultSharedState(),
 });
 

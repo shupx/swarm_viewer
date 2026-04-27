@@ -59,6 +59,29 @@ function serveSubAppDemoAssets(staticRoot: string): Plugin {
   };
 }
 
+function serveStaticFile(route: string, filePath: string): Plugin {
+  return {
+    name: `serve-static-file:${route}`,
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const requestPath = req.url?.split("?")[0] ?? "";
+        if (requestPath !== route) {
+          next();
+          return;
+        }
+
+        if (!fs.existsSync(filePath)) {
+          next();
+          return;
+        }
+
+        res.setHeader("Content-Type", getContentType(filePath));
+        fs.createReadStream(filePath).pipe(res);
+      });
+    },
+  };
+}
+
 const normalizeBasePath = (value?: string) => {
   if (!value || value.trim() === "") {
     return "/";
@@ -78,12 +101,14 @@ export default defineConfig(({ command }) => {
   const base = isDev ? "/" : normalizeBasePath(process.env.VITE_BASE_PATH ?? "./");
   const libraryRoot = path.resolve(__dirname, "../micro-panel-hub");
   const librarySourceRoot = path.resolve(libraryRoot, "main-app/src");
+  const popoutHtmlPath = path.resolve(libraryRoot, "main-app/public/popout.html");
   const subAppDistRoot = path.resolve(libraryRoot, "dist/sub-app-demo");
 
   return {
     base,
     plugins: [
       react(),
+      isDev ? serveStaticFile("/popout.html", popoutHtmlPath) : null,
       isDev ? serveSubAppDemoAssets(subAppDistRoot) : null,
     ],
     resolve: {

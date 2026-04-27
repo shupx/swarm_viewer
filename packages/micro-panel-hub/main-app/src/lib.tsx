@@ -15,6 +15,8 @@ export type {
 } from "./types";
 export type {
   MicroPanelHubLayoutJson,
+  MicroPanelHubLayoutPopout,
+  MicroPanelHubLayoutRect,
   MicroPanelHubShellLayout,
   MicroPanelHubWorkspaceTab,
 } from "./layout-types";

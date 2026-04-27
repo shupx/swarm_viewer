@@ -21,6 +21,7 @@ interface FlexWorkspaceProps {
   title: string;
   workspaceTabId: string;
   layoutJson: LayoutJsonConfig;
+  popoutUrl: string;
   eventBus: MicroPanelHubEventBus;
   sharedState: MicroPanelHubSharedState;
   onLayoutChange: (layoutJson: LayoutJsonConfig) => void;
@@ -32,6 +33,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   title,
   workspaceTabId,
   layoutJson,
+  popoutUrl,
   eventBus,
   sharedState,
   onLayoutChange,
@@ -122,7 +124,15 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
 
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, right: 0 }}>
-      <Layout ref={layoutRef} model={model} factory={factory} onModelChange={onModelChange} />
+      <Layout
+        ref={layoutRef}
+        model={model}
+        factory={factory}
+        onModelChange={onModelChange}
+        supportsPopout={true}
+        popoutURL={popoutUrl}
+        popoutWindowName={`${title} Popout`}
+      />
     </div>
   );
 };

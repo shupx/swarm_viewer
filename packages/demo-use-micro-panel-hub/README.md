@@ -54,7 +54,9 @@ node_modules/@shupeixuan/micro-panel-hub/lib/sub-app-demo/
 这个 demo 工程会通过 `createSubAppDemoPanel()` 显式把示例子应用传给 `MicroPanelHub`：
 
 - 开发时，demo 的 Vite dev server 会把兄弟库包里的 `dist/sub-app-demo/` 通过中间件挂到 `/sub-app-demo/`
+- 开发时，demo 的 Vite dev server 也会把兄弟库包里的 `main-app/public/popout.html` 挂到 `/popout.html`
 - 生产构建时，demo 会把兄弟库包里的 `lib/sub-app-demo/` 复制到 `dist/sub-app-demo/`
+- 生产构建时，demo 还会把兄弟库包里的 `lib/popout.html` 复制到 `dist/popout.html`
 - 示例代码同时演示了 `addMenu` API，可以在 `Add` 菜单中放多个预置项，并在下拉菜单里直接显示 recent 历史
 
-这样 `Add -> sub-app-demo` 时，页面才能真正访问到 `/sub-app-demo/` 这个入口。普通使用方如果也想使用这个示例子应用，也需要把包里的静态目录部署到自己的站点上。
+这样 `Add -> sub-app-demo` 时，页面才能真正访问到 `/sub-app-demo/` 这个入口；而面板弹出到浏览器新窗口时，也能访问到 `/popout.html`。普通使用方如果也想使用这个示例子应用或浏览器 popout 能力，也需要把包里的这些静态文件部署到自己的站点上。

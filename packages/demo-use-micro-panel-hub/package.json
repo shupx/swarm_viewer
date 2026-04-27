@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
+    "copy:popout": "cp ../micro-panel-hub/lib/popout.html dist/popout.html",
     "copy:sub-app": "mkdir -p dist/sub-app-demo && cp -R ../micro-panel-hub/lib/sub-app-demo/. dist/sub-app-demo/",
-    "build": "vite build && pnpm run copy:sub-app",
+    "build": "vite build && pnpm run copy:popout && pnpm run copy:sub-app",
     "preview": "vite preview"
   },
   "dependencies": {

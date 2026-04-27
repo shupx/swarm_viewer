@@ -57,6 +57,7 @@ export interface MicroPanelHubProps {
   defaultCustomAppName?: string;
   defaultRelativeRoute?: string;
   storageKey?: string;
+  popoutUrl?: string;
   eventBus?: MicroPanelHubEventBus;
   sharedState?: MicroPanelHubSharedState;
   className?: string;

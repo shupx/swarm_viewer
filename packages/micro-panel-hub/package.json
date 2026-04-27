@@ -21,7 +21,8 @@
       "require": "./lib/index.js"
     },
     "./styles.css": "./lib/styles.css",
-    "./flexlayout-light.css": "./lib/flexlayout-light.css"
+    "./flexlayout-light.css": "./lib/flexlayout-light.css",
+    "./popout.html": "./lib/popout.html"
   },
   "files": [
     "lib",
@@ -31,7 +32,7 @@
   "scripts": {
     "dev": "pnpm --dir sub-app-demo dev",
     "build": "pnpm run build:lib",
-    "build:lib": "pnpm exec tsup --config tsup.config.ts && cat main-app/src/index.css main-app/src/App.css > lib/styles.css && cp node_modules/flexlayout-react/style/light.css lib/flexlayout-light.css && pnpm --dir sub-app-demo build && mkdir -p lib/sub-app-demo && cp -R dist/sub-app-demo/. lib/sub-app-demo/",
+    "build:lib": "pnpm exec tsup --config tsup.config.ts && cat main-app/src/index.css main-app/src/App.css > lib/styles.css && cp node_modules/flexlayout-react/style/light.css lib/flexlayout-light.css && cp main-app/public/popout.html lib/popout.html && pnpm --dir sub-app-demo build && mkdir -p lib/sub-app-demo && cp -R dist/sub-app-demo/. lib/sub-app-demo/",
     "lint": "pnpm --dir main-app lint && pnpm --dir sub-app-demo lint",
     "pack:check": "pnpm pack --dry-run"
   },

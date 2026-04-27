@@ -16,10 +16,23 @@ export interface MicroPanelHubLayoutNode {
   children?: MicroPanelHubLayoutNode[];
 }
 
+export interface MicroPanelHubLayoutRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface MicroPanelHubLayoutPopout {
+  layout: MicroPanelHubLayoutNode;
+  rect: MicroPanelHubLayoutRect;
+}
+
 export interface MicroPanelHubLayoutJson {
   global?: Record<string, unknown>;
   layout?: MicroPanelHubLayoutNode;
   borders?: MicroPanelHubLayoutNode[];
+  popouts?: Record<string, MicroPanelHubLayoutPopout>;
 }
 
 export interface MicroPanelHubWorkspaceTab {
@@ -34,3 +47,5 @@ export interface MicroPanelHubShellLayout {
   activeTopTabId: string;
   tabs: MicroPanelHubWorkspaceTab[];
 }
+
+export type LayoutJsonConfig = MicroPanelHubLayoutJson;

@@ -227,6 +227,7 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
     defaultCustomAppName,
     defaultRelativeRoute,
     storageKey,
+    popoutUrl,
     eventBus,
     sharedState,
     className,
@@ -891,6 +892,7 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
           title={title}
           workspaceTabId={activeTopTab?.id ?? "tab-1"}
           layoutJson={activeTopTab?.layout ?? emptyWorkspaceLayout}
+          popoutUrl={popoutUrl}
           eventBus={eventBus}
           sharedState={sharedState}
           onLayoutChange={handleActiveLayoutChange}

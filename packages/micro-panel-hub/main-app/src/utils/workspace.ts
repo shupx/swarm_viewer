@@ -24,6 +24,8 @@ export interface MicroAppConfig {
 export const createDefaultLayoutConfig = (title: string): LayoutJsonConfig => ({
   global: {
     tabEnableClose: true,
+    tabEnablePopout: true,
+    tabEnablePopoutIcon: true,
     tabSetEnableMaximize: true,
     tabSetEnableTabStrip: true,
     splitterSize: 3,
@@ -56,27 +58,37 @@ export const createDefaultLayoutConfig = (title: string): LayoutJsonConfig => ({
 
 export const isLayoutJsonConfig = (value: unknown): value is LayoutJsonConfig => {
   if (!value || typeof value !== "object") return false;
-  return "layout" in value || "borders" in value || "global" in value;
+  return "layout" in value || "borders" in value || "global" in value || "popouts" in value;
 };
 
 const cloneLayoutJson = (config: LayoutJsonConfig): LayoutJsonConfig =>
   JSON.parse(JSON.stringify(config)) as LayoutJsonConfig;
 
+const visitLayoutNodes = (
+  config: LayoutJsonConfig,
+  visit: (node?: LayoutNodeConfig) => void,
+) => {
+  visit(config.layout);
+  config.borders?.forEach(visit);
+  Object.values(config.popouts ?? {}).forEach((popout) => {
+    visit(popout.layout);
+  });
+};
+
 export const syncTabStripVisibility = (config: LayoutJsonConfig): LayoutJsonConfig => {
   const cloned = cloneLayoutJson(config);
 
-  const visit = (node?: LayoutNodeConfig) => {
+  const updateNode = (node?: LayoutNodeConfig) => {
     if (!node) return;
 
     if (node.type === "tabset" && Array.isArray(node.children)) {
       node.enableTabStrip = node.children.length > 1;
     }
 
-    node.children?.forEach(visit);
+    node.children?.forEach(updateNode);
   };
 
-  visit(cloned.layout);
-  cloned.borders?.forEach(visit);
+  visitLayoutNodes(cloned, updateNode);
 
   return cloned;
 };
@@ -84,16 +96,15 @@ export const syncTabStripVisibility = (config: LayoutJsonConfig): LayoutJsonConf
 export const normalizeLayoutJson = (config: LayoutJsonConfig): LayoutJsonConfig => {
   const cloned = cloneLayoutJson(config);
 
-  const visit = (node?: LayoutNodeConfig) => {
+  const normalizeNode = (node?: LayoutNodeConfig) => {
     if (node?.component === "sub-app" && node.config) {
       node.config = normalizePanelDefinition(node.config);
     }
 
-    node.children?.forEach(visit);
+    node.children?.forEach(normalizeNode);
   };
 
-  visit(cloned.layout);
-  cloned.borders?.forEach(visit);
+  visitLayoutNodes(cloned, normalizeNode);
 
   return syncTabStripVisibility(cloned);
 };

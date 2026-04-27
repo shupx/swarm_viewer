@@ -61,7 +61,7 @@ pnpm build
 This runs:
 
 1. `@shupeixuan/micro-panel-hub` build (outputs: `packages/micro-panel-hub/lib` and `packages/micro-panel-hub/dist/sub-app-demo`)
-2. `demo-use-micro-panel-hub` build (outputs: `packages/demo-use-micro-panel-hub/dist`)
+2. `demo-use-micro-panel-hub` build (outputs: `packages/demo-use-micro-panel-hub/dist`, including `popout.html` and `sub-app-demo/`)
 
 In this flow, the demo build consumes the library package `lib/` output rather than the source alias.
 
@@ -108,6 +108,7 @@ npm publish --access public --tag dev
 ```
 
 The published npm package includes `lib/`, `README.md`, and `LICENSE`, and does not publish the full workspace source tree.
+That `lib/` output now includes the packaged `sub-app-demo/` assets and `popout.html` used by browser popout windows.
 
 ## GitHub Actions
 
