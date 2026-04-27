@@ -99,37 +99,37 @@ function App({ eventBus, sharedState }: { eventBus?: EventBusLike; sharedState?:
   };
 
   return (
-    <div style={{ width: '100%', minHeight: '100%', boxSizing: 'border-box', backgroundColor: '#ffffff' }}>
-      <div style={{ padding: '20px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-        <h3 style={{ margin: '0 0 16px 0', color: '#2c3e50' }}>Sub App Dashboard</h3>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', width: '100%' }}>
-          <input 
-            type="text" 
-            value={inputVal} 
-            onChange={(e) => setInputVal(e.target.value)} 
-            placeholder="Broadcast a message" 
-            style={{ flex: 1, minWidth: 0, padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px' }}
-          />
-          <button onClick={sendMsg} style={{ padding: '6px 16px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            Send
-          </button>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', width: '100%' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: '100%', boxSizing: 'border-box', backgroundColor: '#ffffff' }}>
+      <div style={{ padding: '20px 20px 0', width: '100%', height: '100%', minHeight: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', width: '100%' }}>
+          <h3 style={{ margin: 0, color: '#2c3e50', whiteSpace: 'nowrap' }}>Sub App Demo</h3>
           <input
             type="text"
             value={sharedStateInput}
             onChange={(e) => setSharedStateInput(e.target.value)}
             placeholder={`Write ${DEMO_SHARED_STATE_KEY}`}
-            style={{ flex: 1, minWidth: 0, padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px' }}
+            style={{ flex: 1, minWidth: 0, height: '32px', padding: '0 10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px' }}
           />
-          <button onClick={writeSharedState} style={{ padding: '6px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          <button onClick={writeSharedState} style={{ height: '32px', padding: '0 12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
             Set State
           </button>
+          <div style={{ display: 'inline-flex', alignItems: 'center', height: '32px', padding: '0 10px', border: '1px solid #eee', borderRadius: '4px', background: '#f8fafc', color: '#475569', fontSize: '12px', whiteSpace: 'nowrap' }}>
+            <strong style={{ color: '#334155' }}>sharedState</strong>: {DEMO_SHARED_STATE_KEY} = {sharedStateValue || '<empty>'}
+          </div>
         </div>
-        <div style={{ marginBottom: '16px', padding: '10px 12px', border: '1px solid #eee', borderRadius: '6px', background: '#f8fafc', color: '#475569', fontSize: '13px' }}>
-          <strong style={{ color: '#334155' }}>sharedState</strong>: {DEMO_SHARED_STATE_KEY} = {sharedStateValue || '<empty>'}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', width: '100%' }}>
+          <input 
+            type="text" 
+            value={inputVal} 
+            onChange={(e) => setInputVal(e.target.value)} 
+            placeholder="Broadcast a message" 
+            style={{ flex: 1, minWidth: 0, height: '32px', padding: '0 10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px' }}
+          />
+          <button onClick={sendMsg} style={{ height: '32px', padding: '0 12px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+            Send
+          </button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, minHeight: '156px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
             <h4 style={{ margin: 0, color: '#7f8c8d', fontSize: '14px' }}>Event Bus Messages received:</h4>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -176,7 +176,7 @@ function App({ eventBus, sharedState }: { eventBus?: EventBusLike; sharedState?:
           <ul
             ref={messagesListRef}
             onScroll={handleMessagesScroll}
-            style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', lineHeight: '16px', color: '#555', height: '108px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px', background: '#fafafa' }}
+            style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', lineHeight: '16px', color: '#555', flex: 1, minHeight: 0, overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px', background: '#fafafa' }}
           >
             {messages.map((m, i) => (
               <li key={i} style={{ padding: '8px 10px', borderBottom: '1px solid #eee', wordBreak: 'break-word' }}>{m}</li>
