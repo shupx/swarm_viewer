@@ -234,6 +234,16 @@ body { margin: 0; padding: 0; }
   display: flex;
 }
 
+.workspace-shell {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+.workspace-shell.active {
+  display: block;
+}
+
 /* FlexLayout custom overrides */
 .flexlayout__layout {
   background-color: #e0e0e0;

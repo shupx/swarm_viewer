@@ -259,7 +259,6 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
   const [dragOverTopTabId, setDragOverTopTabId] = useState<string | null>(null);
   const activeTopTab =
     shellState.tabs.find((tab) => tab.id === shellState.activeTopTabId) ?? shellState.tabs[0] ?? null;
-  const emptyWorkspaceLayout = createDefaultLayoutConfig(title);
 
   useEffect(() => {
     const handler = (msg: unknown) => {
@@ -449,19 +448,19 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
     }
   };
 
-  const handleActiveLayoutChange = (layoutJson: LayoutJsonConfig) => {
+  const handleWorkspaceLayoutChange = (workspaceTabId: string, layoutJson: LayoutJsonConfig) => {
     setShellState((prev) => ({
       ...prev,
-      activeTopTabId: prev.tabs.length === 0 ? "tab-1" : prev.activeTopTabId,
+      activeTopTabId: prev.tabs.length === 0 ? workspaceTabId : prev.activeTopTabId,
       tabs: prev.tabs.length === 0
         ? [
             {
-              ...createWorkspaceTab("tab-1", title),
+              ...createWorkspaceTab(workspaceTabId, title),
               layout: layoutJson,
             },
           ]
         : prev.tabs.map((tab) =>
-            tab.id === prev.activeTopTabId
+            tab.id === workspaceTabId
               ? { ...tab, layout: layoutJson }
               : tab,
           ),
@@ -901,18 +900,26 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
       )}
 
       <main className="workspace-container">
-        <FlexWorkspace
-          key={activeTopTab?.id ?? "empty-workspace"}
-          title={title}
-          workspaceTabId={activeTopTab?.id ?? "tab-1"}
-          layoutJson={activeTopTab?.layout ?? emptyWorkspaceLayout}
-          popoutUrl={popoutUrl}
-          eventBus={eventBus}
-          sharedState={sharedState}
-          onLayoutChange={handleActiveLayoutChange}
-          onPanelDragStart={handlePanelDragStart}
-          onPanelDragEnd={handlePanelDragEnd}
-        />
+        {shellState.tabs.map((tab) => (
+          <div
+            key={tab.id}
+            className={`workspace-shell${tab.id === shellState.activeTopTabId ? " active" : ""}`}
+            aria-hidden={tab.id === shellState.activeTopTabId ? undefined : true}
+          >
+            <FlexWorkspace
+              title={title}
+              workspaceTabId={tab.id}
+              layoutJson={tab.layout}
+              popoutUrl={popoutUrl}
+              isActive={tab.id === shellState.activeTopTabId}
+              eventBus={eventBus}
+              sharedState={sharedState}
+              onLayoutChange={(layoutJson) => handleWorkspaceLayoutChange(tab.id, layoutJson)}
+              onPanelDragStart={handlePanelDragStart}
+              onPanelDragEnd={handlePanelDragEnd}
+            />
+          </div>
+        ))}
       </main>
     </div>
   );

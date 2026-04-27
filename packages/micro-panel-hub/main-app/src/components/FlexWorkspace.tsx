@@ -22,6 +22,7 @@ interface FlexWorkspaceProps {
   workspaceTabId: string;
   layoutJson: LayoutJsonConfig;
   popoutUrl: string;
+  isActive: boolean;
   eventBus: MicroPanelHubEventBus;
   sharedState: MicroPanelHubSharedState;
   onLayoutChange: (layoutJson: LayoutJsonConfig) => void;
@@ -34,6 +35,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   workspaceTabId,
   layoutJson,
   popoutUrl,
+  isActive,
   eventBus,
   sharedState,
   onLayoutChange,
@@ -59,6 +61,10 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   }, [layoutJson]);
 
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
     const handleAddPanel = (data: unknown) => {
       try {
         applyAddPanelToModel(model, data as MicroPanelDefinition);
@@ -74,7 +80,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
     return () => {
       eventBus.off("add-panel", handleAddPanel);
     };
-  }, [eventBus, model, onLayoutChange]);
+  }, [eventBus, isActive, model, onLayoutChange]);
 
   const factory = (node: TabNode) => {
     const component = node.getComponent();
