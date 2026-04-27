@@ -99,8 +99,8 @@ function App({ eventBus, sharedState }: { eventBus?: EventBusLike; sharedState?:
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundColor: '#ffffff' }}>
-      <div style={{ padding: '20px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div style={{ width: '100%', minHeight: '100%', boxSizing: 'border-box', backgroundColor: '#ffffff' }}>
+      <div style={{ padding: '20px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <h3 style={{ margin: '0 0 16px 0', color: '#2c3e50' }}>Sub App Dashboard</h3>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', width: '100%' }}>
           <input 
@@ -129,7 +129,7 @@ function App({ eventBus, sharedState }: { eventBus?: EventBusLike; sharedState?:
         <div style={{ marginBottom: '16px', padding: '10px 12px', border: '1px solid #eee', borderRadius: '6px', background: '#f8fafc', color: '#475569', fontSize: '13px' }}>
           <strong style={{ color: '#334155' }}>sharedState</strong>: {DEMO_SHARED_STATE_KEY} = {sharedStateValue || '<empty>'}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0, minHeight: '156px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
             <h4 style={{ margin: 0, color: '#7f8c8d', fontSize: '14px' }}>Event Bus Messages received:</h4>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -176,7 +176,7 @@ function App({ eventBus, sharedState }: { eventBus?: EventBusLike; sharedState?:
           <ul
             ref={messagesListRef}
             onScroll={handleMessagesScroll}
-            style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', color: '#555', flex: 1, minHeight: 0, overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px', background: '#fafafa' }}
+            style={{ paddingLeft: 0, listStyle: 'none', margin: 0, fontSize: '13px', lineHeight: '16px', color: '#555', height: '108px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px', background: '#fafafa' }}
           >
             {messages.map((m, i) => (
               <li key={i} style={{ padding: '8px 10px', borderBottom: '1px solid #eee', wordBreak: 'break-word' }}>{m}</li>
