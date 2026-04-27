@@ -105,6 +105,16 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
           sharedState={sharedState}
           onCrossWorkspaceDragStart={onPanelDragStart}
           onCrossWorkspaceDragEnd={onPanelDragEnd}
+          onLayoutPersistenceRequest={() => {
+            const nextLayoutJson = normalizeModelJsonForStorage(model);
+            const nextSignature = JSON.stringify(nextLayoutJson);
+            if (nextSignature === lastLayoutSignatureRef.current) {
+              return;
+            }
+
+            lastLayoutSignatureRef.current = nextSignature;
+            onLayoutChange(nextLayoutJson);
+          }}
         />
       );
     }
