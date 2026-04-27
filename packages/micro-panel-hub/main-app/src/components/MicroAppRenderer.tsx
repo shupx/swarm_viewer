@@ -7,27 +7,39 @@ import React, {
 } from "react";
 import { loadMicroApp, type MicroApp } from "qiankun";
 import { TabNode, Model, Actions, Layout, DockLocation } from "flexlayout-react";
+import { MICRO_PANEL_HUB_PANEL_DRAG_MIME, type MicroPanelCrossWorkspaceDragData } from "../types";
+import { normalizePanelDefinition } from "../utils/panels";
 
-import type { MicroPanelHubEventBus, MicroPanelHubSharedState } from "../types";
+import type {
+  MicroPanelDefinition,
+  MicroPanelHubEventBus,
+  MicroPanelHubSharedState,
+} from "../types";
 
 interface MicroAppRendererProps {
   name: string;
   entry: string;
+  workspaceTabId: string;
   node?: TabNode;
   model?: Model;
   layout?: Layout;
   eventBus: MicroPanelHubEventBus;
   sharedState: MicroPanelHubSharedState;
+  onCrossWorkspaceDragStart?: (payload: MicroPanelCrossWorkspaceDragData) => void;
+  onCrossWorkspaceDragEnd?: () => void;
 }
 
 export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
   name,
   entry,
+  workspaceTabId,
   node,
   model,
   layout,
   eventBus,
   sharedState,
+  onCrossWorkspaceDragStart,
+  onCrossWorkspaceDragEnd,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const microAppRef = useRef<MicroApp | null>(null);
@@ -114,10 +126,30 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
     };
   }, [loadApp]);
 
-  const handleDrag = (e: ReactDragEvent) => {
+  const handleDragStart = (e: ReactDragEvent) => {
     if (layout && node) {
       layout.moveTabWithDragAndDrop(e.nativeEvent, node as TabNode);
     }
+
+    if (!node) return;
+
+    const config = node.getConfig() as MicroPanelDefinition | undefined;
+    if (!config) return;
+
+    const payload: MicroPanelCrossWorkspaceDragData = {
+      sourceWorkspaceTabId: workspaceTabId,
+      sourceNodeId: node.getId(),
+      panel: normalizePanelDefinition(config),
+    };
+
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData(MICRO_PANEL_HUB_PANEL_DRAG_MIME, JSON.stringify(payload));
+    e.dataTransfer.setData("text/plain", payload.panel.name);
+    onCrossWorkspaceDragStart?.(payload);
+  };
+
+  const handleDragEnd = () => {
+    onCrossWorkspaceDragEnd?.();
   };
 
   const handleDock = (location: DockLocation) => {
@@ -161,7 +193,8 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
         {/* Custom Inner Toolbar */}
         <div 
           draggable={true}
-          onDragStart={handleDrag}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
           title="Drag panel"
           style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 28,

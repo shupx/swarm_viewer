@@ -9,23 +9,34 @@ import {
   normalizeTabSetAttributes,
 } from "../utils/workspace";
 
-import type { MicroPanelDefinition, MicroPanelHubEventBus, MicroPanelHubSharedState } from "../types";
-import type { LayoutJsonConfig } from "../utils/workspace";
+import type {
+  MicroPanelCrossWorkspaceDragData,
+  MicroPanelDefinition,
+  MicroPanelHubEventBus,
+  MicroPanelHubSharedState,
+} from "../types";
+import type { MicroPanelHubLayoutJson as LayoutJsonConfig } from "../layout-types";
 
 interface FlexWorkspaceProps {
   title: string;
+  workspaceTabId: string;
   layoutJson: LayoutJsonConfig;
   eventBus: MicroPanelHubEventBus;
   sharedState: MicroPanelHubSharedState;
   onLayoutChange: (layoutJson: LayoutJsonConfig) => void;
+  onPanelDragStart: (payload: MicroPanelCrossWorkspaceDragData) => void;
+  onPanelDragEnd: () => void;
 }
 
 export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   title,
+  workspaceTabId,
   layoutJson,
   eventBus,
   sharedState,
   onLayoutChange,
+  onPanelDragStart,
+  onPanelDragEnd,
 }) => {
   const layoutRef = useRef<Layout>(null);
   const initialLayoutJson = normalizeLayoutJson(layoutJson);
@@ -84,11 +95,14 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
           name={config.name}
           entry={config.entry}
           key={node.getId()}
+          workspaceTabId={workspaceTabId}
           node={node}
           model={model}
           layout={layoutRef.current || undefined}
           eventBus={eventBus}
           sharedState={sharedState}
+          onCrossWorkspaceDragStart={onPanelDragStart}
+          onCrossWorkspaceDragEnd={onPanelDragEnd}
         />
       );
     }

@@ -28,6 +28,14 @@ export interface MicroPanelDefinition {
   entry?: string;
 }
 
+export interface MicroPanelCrossWorkspaceDragData {
+  sourceWorkspaceTabId: string;
+  sourceNodeId: string;
+  panel: MicroPanelDefinition;
+}
+
+export const MICRO_PANEL_HUB_PANEL_DRAG_MIME = "application/x-micro-panel-hub-panel";
+
 export interface MicroPanelHubTitleLink {
   href: string;
   target?: "_blank" | "_self";

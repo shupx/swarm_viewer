@@ -109,6 +109,63 @@ export const addPanelToLayout = (
   return syncTabStripVisibility(model.toJson() as LayoutJsonConfig);
 };
 
+const findTabNode = (model: Model, nodeId: string) => {
+  let matchedNode: TabNode | null = null;
+
+  model.visitNodes((node: Node) => {
+    if (matchedNode) return;
+    if (node.getType() === "tab" && node.getId() === nodeId) {
+      matchedNode = node as TabNode;
+    }
+  });
+
+  return matchedNode;
+};
+
+const hasAnyTabNode = (model: Model) => {
+  let found = false;
+
+  model.visitNodes((node: Node) => {
+    if (found) return;
+    if (node.getType() === "tab") {
+      found = true;
+    }
+  });
+
+  return found;
+};
+
+export const removePanelFromLayout = (
+  layoutJson: LayoutJsonConfig,
+  nodeId: string,
+  title: string,
+) => {
+  const normalizedLayout = normalizeLayoutJson(layoutJson);
+  const model = Model.fromJson(normalizedLayout as Record<string, unknown>);
+  const matchedNode = findTabNode(model, nodeId);
+
+  if (!matchedNode) {
+    return {
+      layout: normalizedLayout,
+      removed: false,
+    };
+  }
+
+  model.doAction(Actions.deleteTab(nodeId));
+
+  if (!hasAnyTabNode(model)) {
+    return {
+      layout: createDefaultLayoutConfig(title),
+      removed: true,
+    };
+  }
+
+  return {
+    layout: syncTabStripVisibility(model.toJson() as LayoutJsonConfig),
+    removed: true,
+  };
+};
+
 export const applyAddPanelToModel = (
   model: Model,
   panel: MicroPanelDefinition,

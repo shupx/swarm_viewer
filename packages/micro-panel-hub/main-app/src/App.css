@@ -148,6 +148,19 @@ body { margin: 0; padding: 0; }
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+.top-workspace-tab.drop-target {
+  background: rgba(117, 213, 161, 0.26);
+  color: #ffffff;
+  border-color: rgba(117, 213, 161, 0.9);
+  transform: translateY(-2px);
+}
+
+.top-workspace-tab.active.drop-target {
+  color: #19352a;
+  background: #bff0d4;
+  border-color: rgba(71, 161, 114, 0.95);
+}
+
 .top-workspace-tab-title {
   min-width: 0;
   overflow: hidden;

@@ -9,16 +9,20 @@ import { getPanelDefinitionIdentity, normalizePanelDefinition } from "./utils/pa
 import {
   createDefaultLayoutConfig,
   isLayoutJsonConfig,
+  addPanelToLayout,
   normalizeLayoutJson,
+  removePanelFromLayout,
 } from "./utils/workspace";
 import "./App.css";
 
 import type {
   CustomSourceMode,
+  MicroPanelCrossWorkspaceDragData,
   MicroPanelDefinition,
   MicroPanelHubHandle,
   MicroPanelHubProps,
 } from "./types";
+import { MICRO_PANEL_HUB_PANEL_DRAG_MIME } from "./types";
 import type {
   MicroPanelHubShellLayout as ShellState,
   MicroPanelHubWorkspaceTab as WorkspaceTabState,
@@ -91,13 +95,6 @@ const createWorkspaceTab = (id: string, hubTitle: string, customTitle?: string):
   id,
   title: customTitle?.trim() || getDefaultTopTabTitle(id),
   layout: createDefaultLayoutConfig(hubTitle),
-});
-
-const createEmptyShellState = (): ShellState => ({
-  version: SHELL_STATE_VERSION,
-  topBarCollapsed: false,
-  activeTopTabId: "",
-  tabs: [],
 });
 
 const createDefaultShellState = (hubTitle: string): ShellState => {
@@ -210,6 +207,17 @@ const loadShellState = (
   }
 };
 
+const isCrossWorkspaceDragData = (value: unknown): value is MicroPanelCrossWorkspaceDragData => {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<MicroPanelCrossWorkspaceDragData>;
+  return (
+    typeof candidate.sourceWorkspaceTabId === "string" &&
+    typeof candidate.sourceNodeId === "string" &&
+    Boolean(candidate.panel && typeof candidate.panel === "object" && typeof candidate.panel.name === "string")
+  );
+};
+
 const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(props, ref) {
   const { initialLayout } = props;
   const {
@@ -242,6 +250,9 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
   const [recentPanels, setRecentPanels] = useState<MicroPanelDefinition[]>(() =>
     loadRecentPanels(recentStorageKey, addMenu.recentLimit),
   );
+  const [crossWorkspaceDrag, setCrossWorkspaceDrag] =
+    useState<MicroPanelCrossWorkspaceDragData | null>(null);
+  const [dragOverTopTabId, setDragOverTopTabId] = useState<string | null>(null);
   const activeTopTab =
     shellState.tabs.find((tab) => tab.id === shellState.activeTopTabId) ?? shellState.tabs[0] ?? null;
   const emptyWorkspaceLayout = createDefaultLayoutConfig(title);
@@ -453,6 +464,104 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
     }));
   };
 
+  const readCrossWorkspaceDragData = (event: React.DragEvent<HTMLElement>) => {
+    if (crossWorkspaceDrag) {
+      return crossWorkspaceDrag;
+    }
+
+    const rawPayload = event.dataTransfer.getData(MICRO_PANEL_HUB_PANEL_DRAG_MIME);
+    if (!rawPayload) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(rawPayload);
+      return isCrossWorkspaceDragData(parsed) ? parsed : null;
+    } catch (error) {
+      console.error("Failed to parse cross-workspace drag payload", error);
+      return null;
+    }
+  };
+
+  const handlePanelDragStart = (payload: MicroPanelCrossWorkspaceDragData) => {
+    setCrossWorkspaceDrag(payload);
+    setDragOverTopTabId(null);
+  };
+
+  const handlePanelDragEnd = () => {
+    setCrossWorkspaceDrag(null);
+    setDragOverTopTabId(null);
+  };
+
+  const handleTopTabDragOver = (event: React.DragEvent<HTMLDivElement>, targetTabId: string) => {
+    const dragData = readCrossWorkspaceDragData(event);
+    if (!dragData || dragData.sourceWorkspaceTabId === targetTabId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+
+    if (dragOverTopTabId !== targetTabId) {
+      setDragOverTopTabId(targetTabId);
+    }
+  };
+
+  const handleTopTabDrop = (event: React.DragEvent<HTMLDivElement>, targetTabId: string) => {
+    const dragData = readCrossWorkspaceDragData(event);
+    event.preventDefault();
+
+    if (!dragData || dragData.sourceWorkspaceTabId === targetTabId) {
+      handlePanelDragEnd();
+      return;
+    }
+
+    setShellState((prev) => {
+      const sourceTab = prev.tabs.find((tab) => tab.id === dragData.sourceWorkspaceTabId);
+      const targetTab = prev.tabs.find((tab) => tab.id === targetTabId);
+
+      if (!sourceTab || !targetTab) {
+        return prev;
+      }
+
+      const { layout: nextSourceLayout, removed } = removePanelFromLayout(
+        sourceTab.layout,
+        dragData.sourceNodeId,
+        title,
+      );
+
+      if (!removed) {
+        return prev;
+      }
+
+      const nextTargetLayout = addPanelToLayout(targetTab.layout, dragData.panel);
+
+      return {
+        ...prev,
+        activeTopTabId: targetTabId,
+        tabs: prev.tabs.map((tab) => {
+          if (tab.id === dragData.sourceWorkspaceTabId) {
+            return {
+              ...tab,
+              layout: nextSourceLayout,
+            };
+          }
+
+          if (tab.id === targetTabId) {
+            return {
+              ...tab,
+              layout: nextTargetLayout,
+            };
+          }
+
+          return tab;
+        }),
+      };
+    });
+
+    handlePanelDragEnd();
+  };
+
   const broadcastMessage = () => {
     eventBus.emit("message", { from: "main", text: "Hello from Micro Panel Hub!" });
     setShowSettingsMenu(false);
@@ -658,9 +767,18 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
             <div className="top-tab-strip">
               {shellState.tabs.map((tab) => (
                 <div
-                  className={`top-workspace-tab${tab.id === activeTopTab?.id ? " active" : ""}`}
+                  className={`top-workspace-tab${tab.id === activeTopTab?.id ? " active" : ""}${
+                    dragOverTopTabId === tab.id ? " drop-target" : ""
+                  }`}
                   key={tab.id}
                   onClick={() => handleActivateTopTab(tab.id)}
+                  onDragLeave={() => {
+                    if (dragOverTopTabId === tab.id) {
+                      setDragOverTopTabId(null);
+                    }
+                  }}
+                  onDragOver={(event) => handleTopTabDragOver(event, tab.id)}
+                  onDrop={(event) => handleTopTabDrop(event, tab.id)}
                   onDoubleClick={() => handleStartRenameTopTab(tab)}
                 >
                   {editingTopTabId === tab.id ? (
@@ -771,10 +889,13 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
         <FlexWorkspace
           key={activeTopTab?.id ?? "empty-workspace"}
           title={title}
+          workspaceTabId={activeTopTab?.id ?? "tab-1"}
           layoutJson={activeTopTab?.layout ?? emptyWorkspaceLayout}
           eventBus={eventBus}
           sharedState={sharedState}
           onLayoutChange={handleActiveLayoutChange}
+          onPanelDragStart={handlePanelDragStart}
+          onPanelDragEnd={handlePanelDragEnd}
         />
       </main>
     </div>
