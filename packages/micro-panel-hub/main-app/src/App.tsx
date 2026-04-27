@@ -184,6 +184,13 @@ const parseShellStateValue = (value: unknown, hubTitle: string): ShellState | nu
   return null;
 };
 
+const resolveDefaultShellState = (
+  hubTitle: string,
+  initialLayout?: ShellState,
+) => initialLayout
+  ? parseShellStateValue(initialLayout, hubTitle) ?? createDefaultShellState(hubTitle)
+  : createDefaultShellState(hubTitle);
+
 const loadShellState = (
   storageKey: string,
   hubTitle: string,
@@ -192,18 +199,14 @@ const loadShellState = (
   try {
     const saved = localStorage.getItem(storageKey);
     if (!saved) {
-      return initialLayout
-        ? parseShellStateValue(initialLayout, hubTitle) ?? createDefaultShellState(hubTitle)
-        : createDefaultShellState(hubTitle);
+      return resolveDefaultShellState(hubTitle, initialLayout);
     }
 
     const parsed = JSON.parse(saved);
-    return parseShellStateValue(parsed, hubTitle) ?? createDefaultShellState(hubTitle);
+    return parseShellStateValue(parsed, hubTitle) ?? resolveDefaultShellState(hubTitle, initialLayout);
   } catch (error) {
     console.error("Failed to load shell state", error);
-    return initialLayout
-      ? parseShellStateValue(initialLayout, hubTitle) ?? createDefaultShellState(hubTitle)
-      : createDefaultShellState(hubTitle);
+    return resolveDefaultShellState(hubTitle, initialLayout);
   }
 };
 
@@ -573,6 +576,14 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
     setShowSettingsMenu(false);
   };
 
+  const handleResetToDefaultLayout = () => {
+    setShellState(resolveDefaultShellState(title, initialLayout));
+    setEditingTopTabId(null);
+    setEditingTopTabTitle("");
+    setShowAddMenu(false);
+    setShowSettingsMenu(false);
+  };
+
   const handleImportLayout = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -758,6 +769,9 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
                       Import Layout
                       <input type="file" accept=".json" style={{ display: "none" }} onChange={handleImportLayout} />
                     </label>
+                    <div className="dropdown-item" onClick={handleResetToDefaultLayout}>
+                      Reset to Default Layout
+                    </div>
                     <div className="dropdown-divider"></div>
                     <div className="dropdown-item" onClick={broadcastMessage}>Broadcast Event</div>
                   </div>
