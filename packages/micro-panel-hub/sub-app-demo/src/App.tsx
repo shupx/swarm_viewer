@@ -103,6 +103,9 @@ function App({ eventBus, sharedState }: { eventBus?: EventBusLike; sharedState?:
       <div style={{ padding: '20px 20px 0', width: '100%', height: '100%', minHeight: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', width: '100%' }}>
           <h3 style={{ margin: 0, color: '#2c3e50', whiteSpace: 'nowrap' }}>Sub App Demo</h3>
+          <div style={{ display: 'inline-flex', alignItems: 'center', height: '32px', padding: '0 10px', border: '1px solid #eee', borderRadius: '4px', background: '#f8fafc', color: '#475569', fontSize: '12px', whiteSpace: 'nowrap' }}>
+            <strong style={{ color: '#334155' }}>sharedState</strong>: {DEMO_SHARED_STATE_KEY} = {sharedStateValue || '<empty>'}
+          </div>
           <input
             type="text"
             value={sharedStateInput}
@@ -113,9 +116,6 @@ function App({ eventBus, sharedState }: { eventBus?: EventBusLike; sharedState?:
           <button onClick={writeSharedState} style={{ height: '32px', padding: '0 12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
             Set State
           </button>
-          <div style={{ display: 'inline-flex', alignItems: 'center', height: '32px', padding: '0 10px', border: '1px solid #eee', borderRadius: '4px', background: '#f8fafc', color: '#475569', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            <strong style={{ color: '#334155' }}>sharedState</strong>: {DEMO_SHARED_STATE_KEY} = {sharedStateValue || '<empty>'}
-          </div>
         </div>
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', width: '100%' }}>
           <input 
