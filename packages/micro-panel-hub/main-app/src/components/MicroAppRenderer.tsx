@@ -8,7 +8,7 @@ import React, {
 import { loadMicroApp, type MicroApp } from "qiankun";
 import { TabNode, Model, Actions, Layout, DockLocation } from "flexlayout-react";
 
-import type { MicroPanelHubEventBus } from "../types";
+import type { MicroPanelHubEventBus, MicroPanelHubSharedState } from "../types";
 
 interface MicroAppRendererProps {
   name: string;
@@ -17,6 +17,7 @@ interface MicroAppRendererProps {
   model?: Model;
   layout?: Layout;
   eventBus: MicroPanelHubEventBus;
+  sharedState: MicroPanelHubSharedState;
 }
 
 export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
@@ -26,6 +27,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
   model,
   layout,
   eventBus,
+  sharedState,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const microAppRef = useRef<MicroApp | null>(null);
@@ -68,6 +70,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
           container,
           props: {
             eventBus,
+            sharedState,
           },
         },
         {
@@ -96,7 +99,7 @@ export const MicroAppRenderer: React.FC<MicroAppRendererProps> = ({
       setError(message);
       setLoading(false);
     }
-  }, [entry, eventBus, name]);
+  }, [entry, eventBus, name, sharedState]);
 
   useEffect(() => {
     // qiankun mount triggers local loading/error state as part of synchronizing with the external micro-app runtime.

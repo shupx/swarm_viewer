@@ -9,13 +9,14 @@ import {
   normalizeTabSetAttributes,
 } from "../utils/workspace";
 
-import type { MicroPanelDefinition, MicroPanelHubEventBus } from "../types";
+import type { MicroPanelDefinition, MicroPanelHubEventBus, MicroPanelHubSharedState } from "../types";
 import type { LayoutJsonConfig } from "../utils/workspace";
 
 interface FlexWorkspaceProps {
   title: string;
   layoutJson: LayoutJsonConfig;
   eventBus: MicroPanelHubEventBus;
+  sharedState: MicroPanelHubSharedState;
   onLayoutChange: (layoutJson: LayoutJsonConfig) => void;
 }
 
@@ -23,6 +24,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
   title,
   layoutJson,
   eventBus,
+  sharedState,
   onLayoutChange,
 }) => {
   const layoutRef = useRef<Layout>(null);
@@ -86,6 +88,7 @@ export const FlexWorkspace: React.FC<FlexWorkspaceProps> = ({
           model={model}
           layout={layoutRef.current || undefined}
           eventBus={eventBus}
+          sharedState={sharedState}
         />
       );
     }

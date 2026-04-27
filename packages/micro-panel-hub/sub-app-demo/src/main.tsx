@@ -11,15 +11,23 @@ interface EventBusLike {
   emit: (type: string, event?: unknown) => void;
 }
 
+interface SharedStateLike {
+  get: <T = unknown>(key: string) => T | undefined;
+  set: <T = unknown>(key: string, value: T) => void;
+  subscribe: <T = unknown>(key: string, listener: (value: T | undefined) => void) => () => void;
+  getAll: () => Record<string, unknown>;
+}
+
 interface QiankunProps {
   container?: Element | Document;
   eventBus?: EventBusLike;
+  sharedState?: SharedStateLike;
 }
 
 let root: ReturnType<typeof createRoot> | null = null;
 
 function render(props: QiankunProps) {
-  const { container, eventBus } = props;
+  const { container, eventBus, sharedState } = props;
   const target = container
     ? container.querySelector('#root') || container
     : document.querySelector('#root');
@@ -30,7 +38,7 @@ function render(props: QiankunProps) {
   
   root = createRoot(target);
   root.render(
-    <App eventBus={eventBus} />
+    <App eventBus={eventBus} sharedState={sharedState} />
   );
 }
 

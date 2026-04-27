@@ -5,6 +5,13 @@ export type MicroPanelHubEvents = Record<string, unknown>;
 
 export type MicroPanelHubEventBus = Emitter<MicroPanelHubEvents>;
 
+export interface MicroPanelHubSharedState {
+  get<T = unknown>(key: string): T | undefined;
+  set<T = unknown>(key: string, value: T): void;
+  subscribe<T = unknown>(key: string, listener: (value: T | undefined) => void): () => void;
+  getAll(): Record<string, unknown>;
+}
+
 export type CustomSourceMode =
   | "absolute-url"
   | "site-relative-route"
@@ -43,6 +50,7 @@ export interface MicroPanelHubProps {
   defaultRelativeRoute?: string;
   storageKey?: string;
   eventBus?: MicroPanelHubEventBus;
+  sharedState?: MicroPanelHubSharedState;
   className?: string;
 }
 

@@ -5,8 +5,10 @@ import type {
   MicroPanelDefinition,
   MicroPanelHubEventBus,
   MicroPanelHubProps,
+  MicroPanelHubSharedState,
   MicroPanelHubTitleLink,
 } from "./types";
+import { sharedState } from "./utils/bus";
 
 export const DEFAULT_TITLE = "Micro Panel Hub";
 export const DEFAULT_TITLE_LINK: MicroPanelHubTitleLink = {
@@ -47,6 +49,7 @@ export const createSubAppDemoPanel = ({
 const sharedEventBus = mitt<Record<string, unknown>>();
 
 export const getDefaultEventBus = (): MicroPanelHubEventBus => sharedEventBus;
+export const getDefaultSharedState = (): MicroPanelHubSharedState => sharedState;
 
 export interface ResolvedAddMenuOptions {
   panels: MicroPanelDefinition[];
@@ -89,6 +92,7 @@ export const resolveHubProps = (
   Pick<MicroPanelHubProps, "titleLink"> & {
     addMenu: ResolvedAddMenuOptions;
     eventBus: MicroPanelHubEventBus;
+    sharedState: MicroPanelHubSharedState;
   } => {
   const defaultPanels = props.defaultPanels ?? DEFAULT_PANELS;
   const addMenu = props.addMenu ?? {};
@@ -112,5 +116,6 @@ export const resolveHubProps = (
       recentLimit,
     },
     eventBus: props.eventBus ?? getDefaultEventBus(),
+    sharedState: props.sharedState ?? getDefaultSharedState(),
   };
 };

@@ -10,6 +10,7 @@ export type {
   MicroPanelHubEvents,
   MicroPanelHubMountOptions,
   MicroPanelHubProps,
+  MicroPanelHubSharedState,
   MicroPanelHubTitleLink,
 } from "./types";
 export type {
@@ -18,4 +19,4 @@ export type {
   MicroPanelHubWorkspaceTab,
 } from "./layout-types";
 
-export { createSubAppDemoPanel, getDefaultEventBus } from "./defaults";
+export { createSubAppDemoPanel, getDefaultEventBus, getDefaultSharedState } from "./defaults";

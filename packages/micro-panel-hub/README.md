@@ -41,6 +41,7 @@ pnpm pack --dry-run
 | `MicroPanelHub` | React component | Renders the workspace directly inside a React app | Requires explicit style import |
 | `mountMicroPanelHub` | Function | Mounts the workspace into a DOM container imperatively | Still rendered internally with React |
 | `getDefaultEventBus` | Function | Returns the default event bus instance | Useful for sharing the message channel with the host |
+| `getDefaultSharedState` | Function | Returns the default shared state instance | Useful for storing shared sub-app state in the host |
 | `createSubAppDemoPanel` | Function | Creates a panel definition for the packaged demo micro app | Host apps still need to serve the packaged static assets |
 | `MicroPanelHubProps` | Type | Component props type | Main component configuration entry |
 | `MicroPanelHubHandle` | Type | Imperative React ref handle | Supports exporting the current shell layout |
@@ -50,6 +51,7 @@ pnpm pack --dry-run
 | `MicroPanelAddMenuOptions` | Type | Add menu configuration type | Controls preset items, custom app, and recent history |
 | `MicroAppSource` | Type | Child app source configuration type | Supports absolute and relative routes |
 | `MicroPanelHubEventBus` | Type | Event bus type | Based on `mitt` |
+| `MicroPanelHubSharedState` | Type | Shared state type | Key-value store injected into qiankun props |
 | `@shupeixuan/micro-panel-hub/styles.css` | Style entry | Imports the component styles | Recommended for host apps |
 | `@shupeixuan/micro-panel-hub/flexlayout-light.css` | Style entry | Imports the default FlexLayout theme styles | Useful when the host wants explicit control |
 
@@ -64,6 +66,7 @@ pnpm pack --dry-run
 - `defaultRelativeRoute`
 - `storageKey`
 - `eventBus`
+- `sharedState`
 - `className`
 
 To run the page demo, use the sibling workspace package `../demo-use-micro-panel-hub/`.
@@ -83,6 +86,7 @@ Component usage:
 ```tsx
 import {
   createSubAppDemoPanel,
+  getDefaultSharedState,
   type MicroPanelHubHandle,
   MicroPanelHub,
 } from "@shupeixuan/micro-panel-hub";
@@ -118,6 +122,7 @@ export function Demo() {
           recentLimit: 8,
         }}
         storageKey="embedded_micro_panel_hub_layout"
+        sharedState={getDefaultSharedState()}
       />
     </div>
   );
@@ -172,7 +177,7 @@ createSubAppDemoPanel({ route: "/docs/sub-app-demo/" })
 Imperative mount usage:
 
 ```ts
-import { mountMicroPanelHub } from "@shupeixuan/micro-panel-hub";
+import { getDefaultSharedState, mountMicroPanelHub } from "@shupeixuan/micro-panel-hub";
 import "@shupeixuan/micro-panel-hub/styles.css";
 
 const mounted = mountMicroPanelHub(document.getElementById("root")!, {
@@ -181,9 +186,51 @@ const mounted = mountMicroPanelHub(document.getElementById("root")!, {
     href: "https://github.com/shupx/micro-panel-hub",
     target: "_blank",
   },
+  sharedState: getDefaultSharedState(),
 });
 
 mounted.unmount();
+```
+
+## Event Bus vs Shared State
+
+Use `eventBus` for transient events such as one-shot commands, button clicks, notifications, or requests between the host and sub apps.
+
+Use `sharedState` for current shared state that late-mounted sub apps should still be able to read and subscribe to. Recommended keys use namespaced strings such as:
+
+- `swarm.selectedRobots`
+- `swarm.onlineRobots`
+- `map.focusedRobot`
+
+Host-side example:
+
+```ts
+import { getDefaultSharedState } from "@shupeixuan/micro-panel-hub";
+
+const sharedState = getDefaultSharedState();
+sharedState.set("swarm.selectedRobots", [{ name: "uav1", status: "connected" }]);
+```
+
+Qiankun sub-app example:
+
+```ts
+export async function mount(props: {
+  sharedState?: {
+    get: <T = unknown>(key: string) => T | undefined;
+    set: <T = unknown>(key: string, value: T) => void;
+    subscribe: <T = unknown>(key: string, listener: (value: T | undefined) => void) => () => void;
+    getAll: () => Record<string, unknown>;
+  };
+}) {
+  const current = props.sharedState?.get<string>("demo.sharedMessage");
+  const unsubscribe = props.sharedState?.subscribe<string>("demo.sharedMessage", (value) => {
+    console.log("shared state updated", value);
+  });
+
+  props.sharedState?.set("demo.sharedMessage", current ?? "hello from sub app");
+
+  return unsubscribe;
+}
 ```
 
 ## Manual Packaging And Publishing To npmjs

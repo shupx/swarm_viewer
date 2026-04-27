@@ -220,6 +220,7 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
     defaultRelativeRoute,
     storageKey,
     eventBus,
+    sharedState,
     className,
   } = resolveHubProps(props);
   const recentStorageKey = getRecentStorageKey(storageKey);
@@ -772,6 +773,7 @@ const App = forwardRef<MicroPanelHubHandle, MicroPanelHubProps>(function App(pro
           title={title}
           layoutJson={activeTopTab?.layout ?? emptyWorkspaceLayout}
           eventBus={eventBus}
+          sharedState={sharedState}
           onLayoutChange={handleActiveLayoutChange}
         />
       </main>
